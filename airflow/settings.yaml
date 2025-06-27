@@ -1,0 +1,32 @@
+# Airflow version to be installed
+airflow_version: "2.6.3"
+
+# Python version for the project
+python_version: "3.8"
+
+
+# Path to a virtual environment to be used for the project
+mode:
+    name: "uv"
+    config:
+      venv_path: "PROJECT_DIR/.venv"
+
+# Airflow connections
+connections:
+    # Example connection
+    - conn_id: example
+      conn_type: http
+      host: http://example.com
+      port: 80
+      login: user
+      password: pass
+      schema: http
+      extra:
+         example_extra_field: example-value
+
+# Airflow variables
+variables:
+    # Example variable
+    - key: example
+      value: example-value
+      description: example-description

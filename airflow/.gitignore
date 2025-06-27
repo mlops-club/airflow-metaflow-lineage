@@ -1,0 +1,4 @@
+logs
+airflow.db
+# we will fully configure airflow from env vars
+airflow.cfg

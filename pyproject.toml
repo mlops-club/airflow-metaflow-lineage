@@ -1,0 +1,14 @@
+[project]
+name = "airflow-metaflow-lineage"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "apache-airflow>=3.0.2",
+    "apache-airflow-providers-amazon>=9.9.0",
+]
+
+# [build-system]
+# requires = ["hatchling"]
+# build-backend = "hatchling.build"
