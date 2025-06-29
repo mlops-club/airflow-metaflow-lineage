@@ -8,9 +8,12 @@ THIS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 function airflow() {
     export AIRFLOW_HOME="${THIS_DIR}/airflow"
     export AIRFLOW__CORE__LOAD_EXAMPLES=False
+    export AWS_PROFILE=sandbox
+    export AWS_REGION=us-east-1
+    export AWS_DEFAULT_REGION=us-east-1
     uvx \
         --with "apache-airflow-providers-amazon" \
-        --from "apache-airflow>=3.0.2" airflow ${@}
+        --from "apache-airflow-core>=3.0.2" airflow ${@}
 }
 
 function start-airflow() {
