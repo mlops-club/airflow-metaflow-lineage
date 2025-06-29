@@ -97,10 +97,10 @@ def ingest_taxi_data():
 
     # DAG Execution
     download = download_and_stage_data()
-    staging = run_athena_query.override(task_id="create_staging_table")("Create Staging", SQL_DIR / "create_staging_yellow.sql")
-    raw = run_athena_query.override(task_id="create_raw_table")("Create Raw", SQL_DIR / "create_raw_yellow.sql")
+    staging = run_athena_query.override(task_id="create_staging_table")("Create Staging Table", SQL_DIR / "create_staging_yellow.sql")
+    raw = run_athena_query.override(task_id="create_raw_table")("Create Raw Table", SQL_DIR / "create_raw_yellow.sql")
     merge = run_athena_query.override(task_id="merge_upsert_raw_yellow", trigger_rule=TriggerRule.ALL_SUCCESS)(
-        "Merge Upsert", SQL_DIR / "merge_into_raw_yellow.sql"
+        "Merge Upsert Data From Staging To Raw", SQL_DIR / "merge_into_raw_yellow.sql"
     )
     
     # Task Dependencies
