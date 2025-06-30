@@ -15,7 +15,7 @@ import os
 # this is not meant for collaboration between multiple team members
 os.environ["PULUMI_CONFIG_PASSPHRASE"] = ""
 
-S3_BUCKET_NAME = os.environ["S3_DATA_LAKE_BUCKET"]
+S3_BUCKET_NAME = os.environ["S3_DATA_LAKE_BUCKET_NAME"]
 GLUE_DATABASE_NAME = os.environ["GLUE_DATABASE"]
 
 PULUMI_PROJECT_NAME = os.environ["PULUMI_PROJECT_NAME"]

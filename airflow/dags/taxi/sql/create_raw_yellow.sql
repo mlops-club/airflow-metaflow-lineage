@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS nyc_taxi.raw_yellow (
+CREATE TABLE IF NOT EXISTS {{ var.value.get("datalake-glue-database") }}.raw_yellow (
     unique_row_id         STRING,
     filename              STRING,
     ingest_timestamp      TIMESTAMP,
@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS nyc_taxi.raw_yellow (
     airport_fee           DOUBLE
 )
 PARTITIONED BY (day(tpep_pickup_datetime))
-LOCATION 's3://nyc-taxi-datalake-glue-nyc-taxi/raw_yellow/'
+LOCATION 's3://{{ var.value.get("datalake-s3-bucket") }}/raw_yellow/'
 TBLPROPERTIES (
     'table_type' = 'ICEBERG',
     'format' = 'parquet',

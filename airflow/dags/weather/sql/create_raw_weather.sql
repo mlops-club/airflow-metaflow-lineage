@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS nyc_taxi.raw_weather (
+CREATE TABLE IF NOT EXISTS {{ var.value.get("datalake-glue-database") }}.raw_weather (
     unique_row_id STRING,
     filename STRING,
     ingest_timestamp TIMESTAMP,
@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS nyc_taxi.raw_weather (
     day_31 DOUBLE
 )
 PARTITIONED BY (year, month, meteorological_element)
-LOCATION 's3://nyc-taxi-datalake-glue-nyc-taxi/raw_weather/'
+LOCATION 's3://{{ var.value.get("datalake-s3-bucket") }}/raw_weather/'
 TBLPROPERTIES (
     'table_type' = 'ICEBERG',
     'format' = 'parquet',

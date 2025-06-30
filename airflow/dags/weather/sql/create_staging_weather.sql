@@ -1,4 +1,4 @@
-CREATE EXTERNAL TABLE IF NOT EXISTS nyc_taxi.staging_weather (
+CREATE EXTERNAL TABLE IF NOT EXISTS {{ var.value.get("datalake-glue-database") }}.staging_weather (
     region_type STRING,
     region_code BIGINT,
     region_name STRING,
@@ -19,7 +19,7 @@ WITH SERDEPROPERTIES (
     'serialization.null.format' = '-999.99'
 )
 STORED AS TEXTFILE
-LOCATION 's3://nyc-taxi-datalake-glue-nyc-taxi/staging/weather/'
+LOCATION 's3://{{ var.value.get("datalake-s3-bucket") }}/staging/weather/'
 TBLPROPERTIES (
     "skip.header.line.count"="0"
     -- "serialization.null.format"="-999.99"

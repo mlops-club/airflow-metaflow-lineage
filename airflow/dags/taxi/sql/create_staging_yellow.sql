@@ -1,4 +1,4 @@
-CREATE EXTERNAL TABLE IF NOT EXISTS nyc_taxi.staging_yellow (
+CREATE EXTERNAL TABLE IF NOT EXISTS {{ var.value.get("datalake-glue-database") }}.staging_yellow (
     vendorid INT,
     tpep_pickup_datetime TIMESTAMP,
     tpep_dropoff_datetime TIMESTAMP,
@@ -21,5 +21,5 @@ CREATE EXTERNAL TABLE IF NOT EXISTS nyc_taxi.staging_yellow (
     airport_fee DOUBLE
 )
 STORED AS PARQUET
-LOCATION 's3://nyc-taxi-datalake-glue-nyc-taxi/staging/yellow/'
+LOCATION 's3://{{ var.value.get("datalake-s3-bucket") }}/staging/yellow/'
 TBLPROPERTIES ("parquet.compress"="SNAPPY");

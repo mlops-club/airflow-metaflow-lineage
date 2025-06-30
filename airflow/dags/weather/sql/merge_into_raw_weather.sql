@@ -1,4 +1,4 @@
-MERGE INTO nyc_taxi.raw_weather AS target
+MERGE INTO {{ var.value.get("datalake-glue-database") }}.raw_weather AS target
 USING (
     SELECT 
         LOWER(TO_HEX(MD5(TO_UTF8(
@@ -49,7 +49,7 @@ USING (
         CASE WHEN day_29 = -999.99 THEN NULL ELSE day_29 END AS day_29,
         CASE WHEN day_30 = -999.99 THEN NULL ELSE day_30 END AS day_30,
         CASE WHEN day_31 = -999.99 THEN NULL ELSE day_31 END AS day_31
-    FROM nyc_taxi.staging_weather
+    FROM {{ var.value.get("datalake-glue-database") }}.staging_weather
 ) AS source
 ON target.unique_row_id = source.unique_row_id
 WHEN MATCHED THEN 

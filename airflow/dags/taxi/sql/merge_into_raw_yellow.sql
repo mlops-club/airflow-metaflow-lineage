@@ -1,4 +1,4 @@
-MERGE INTO nyc_taxi.raw_yellow AS target
+MERGE INTO {{ var.value.get("datalake-glue-database") }}.raw_yellow AS target
 USING (
     SELECT 
         LOWER(TO_HEX(MD5(TO_UTF8(
@@ -43,7 +43,7 @@ USING (
         congestion_surcharge,
         cbd_congestion_fee,
         airport_fee
-    FROM nyc_taxi.staging_yellow
+    FROM {{ var.value.get("datalake-glue-database") }}.staging_yellow
 ) AS source
 ON target.unique_row_id = source.unique_row_id
 WHEN MATCHED THEN 
