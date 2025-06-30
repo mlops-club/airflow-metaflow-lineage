@@ -5,6 +5,12 @@ set -e
 export AWS_PROFILE=sandbox
 export AWS_REGION=us-east-1
 
+export S3_DATA_LAKE_BUCKET="airflow-metaflow-lineage-datalake-bucket"
+export GLUE_DATABASE="nyc_taxi"
+
+export PULUMI_PROJECT_NAME="airflow-metaflow-lineage"
+export PULUMI_STACK_NAME="dev"
+
 THIS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 
@@ -36,6 +42,17 @@ function install-airflow {
     # For example this would install 3.0.0 with python 3.9: https://raw.githubusercontent.com/apache/airflow/constraints-3.0.2/constraints-3.9.txt
 
     uv pip install "apache-airflow==${AIRFLOW_VERSION}" --constraint "${CONSTRAINT_URL}"
+}
+
+
+function create-infra() {
+    export STACK_ACTION=up
+    uv run "${THIS_DIR}/infra.py"
+}
+
+function destroy-infra() {
+    export STACK_ACTION=destroy
+    uv run "${THIS_DIR}/infra.py"
 }
 
 
