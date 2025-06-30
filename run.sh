@@ -5,10 +5,11 @@ set -e
 export AWS_PROFILE=sandbox
 export AWS_REGION=us-east-1
 
+# aws account id/hash used to make a unique, but consistent bucket name
 export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
+export AWS_ACCOUNT_ID_HASH=$(echo -n "${AWS_ACCOUNT_ID}" | sha256sum | cut -c5-8)
 
 # hash the acct id and take the first 8 characters
-export AWS_ACCOUNT_ID_HASH=$(echo -n "${AWS_ACCOUNT_ID}" | sha256sum | cut -c5-8)
 export S3_DATA_LAKE_BUCKET_NAME="airflow-metaflow-${AWS_ACCOUNT_ID_HASH}"
 export GLUE_DATABASE="nyc_taxi"
 
@@ -30,10 +31,16 @@ function airflow() {
         --from "apache-airflow-core>=3.0.2" airflow ${@}
 }
 
-function start-airflow() {
+function init-airflow() {
+    # init airflow sqlite db if not present
+    [ -f "${THIS_DIR}/airflow/airflow.db" ] || airflow db reset -y
+    # Set Airflow variables
     airflow variables set datalake-aws-region "${AWS_REGION}"
     airflow variables set datalake-s3-bucket "${S3_DATA_LAKE_BUCKET_NAME}"
     airflow variables set datalake-glue-database "${GLUE_DATABASE}"
+}
+
+function start-airflow() {
     airflow standalone
 }
 
@@ -78,6 +85,8 @@ function clean {
       -o -name "*.coverage*" \
       -not -path "*env/*" \
       -exec rm {} +
+
+    airflow db reset -y
 }
 
 
