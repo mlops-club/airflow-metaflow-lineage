@@ -10,21 +10,13 @@ THIS_DIR = Path(__file__).parent
 SQL_DIR = THIS_DIR / "sql"
 
 
-class DatasetConfig(BaseModel):
+class FlowConfig(BaseModel):
     as_of_datetime: str
     lookback_days: int = Field(gt=0, default=30)
     predict_horizon_hours: int = Field(gt=0, default=24)
-
-
-class AWSConfig(BaseModel):
     glue_database: str
     s3_bucket: str
     region: str = "us-east-1"
-
-
-class FlowConfig(BaseModel):
-    dataset: DatasetConfig
-    aws: AWSConfig
 
 
 def config_parser(txt: str):
@@ -70,25 +62,25 @@ class TrainForecastModelFlow(FlowSpec):
         
         execute_query(
             sql_query=create_actuals_table_sql,
-            glue_database=self.cfg.aws.glue_database,
-            s3_bucket=self.cfg.aws.s3_bucket,
+            glue_database=self.cfg.glue_database,
+            s3_bucket=self.cfg.s3_bucket,
             ctx={
-                "glue_database": self.cfg.aws.glue_database,
-                "s3_bucket": self.cfg.aws.s3_bucket,
+                "glue_database": self.cfg.glue_database,
+                "s3_bucket": self.cfg.s3_bucket,
             },
         )
 
         # compute and merge actuals into the actuals table
-        as_of_dt = datetime.fromisoformat(self.cfg.dataset.as_of_datetime.replace("Z", "+00:00"))
+        as_of_dt = datetime.fromisoformat(self.cfg.as_of_datetime.replace("Z", "+00:00"))
         execute_query(
             sql_query=(SQL_DIR / "compute_actuals.sql").read_text(),
-            glue_database=self.cfg.aws.glue_database,
-            s3_bucket=self.cfg.aws.s3_bucket,
+            glue_database=self.cfg.glue_database,
+            s3_bucket=self.cfg.s3_bucket,
             ctx={
-                "glue_database": self.cfg.aws.glue_database,
-                "s3_bucket": self.cfg.aws.s3_bucket,
-                "start_datetime": (as_of_dt - timedelta(days=self.cfg.dataset.lookback_days * 2)).strftime("%Y-%m-%d %H:%M:%S"),
-                "end_datetime": (as_of_dt + timedelta(days=self.cfg.dataset.lookback_days * 2)).strftime("%Y-%m-%d %H:%M:%S"),
+                "glue_database": self.cfg.glue_database,
+                "s3_bucket": self.cfg.s3_bucket,
+                "start_datetime": (as_of_dt - timedelta(days=self.cfg.lookback_days * 2)).strftime("%Y-%m-%d %H:%M:%S"),
+                "end_datetime": (as_of_dt + timedelta(days=self.cfg.lookback_days * 2)).strftime("%Y-%m-%d %H:%M:%S"),
             },
         )
 
@@ -118,11 +110,11 @@ class TrainForecastModelFlow(FlowSpec):
 
         execute_query(
             sql_query=query,
-            glue_database=self.cfg.aws.glue_database,
-            s3_bucket=self.cfg.aws.s3_bucket,
+            glue_database=self.cfg.glue_database,
+            s3_bucket=self.cfg.s3_bucket,
             ctx={
-                "glue_database": self.cfg.aws.glue_database,
-                "s3_bucket": self.cfg.aws.s3_bucket,
+                "glue_database": self.cfg.glue_database,
+                "s3_bucket": self.cfg.s3_bucket,
             },
         )
 
@@ -134,10 +126,10 @@ class TrainForecastModelFlow(FlowSpec):
 
         self.training_data_df = prepare_training_data(
             sql_file_path=SQL_DIR / "prepare_training_data.sql",
-            glue_database=self.cfg.aws.glue_database,
-            s3_bucket=self.cfg.aws.s3_bucket,
-            as_of_datetime=self.cfg.dataset.as_of_datetime,
-            lookback_days=self.cfg.dataset.lookback_days,
+            glue_database=self.cfg.glue_database,
+            s3_bucket=self.cfg.s3_bucket,
+            as_of_datetime=self.cfg.as_of_datetime,
+            lookback_days=self.cfg.lookback_days,
         )
         self.next(self.generate_seasonal_naive_forecast)
 
@@ -150,11 +142,11 @@ class TrainForecastModelFlow(FlowSpec):
         seasonal_sql_path = SQL_DIR / "seasonal_naive_forecast.sql"
         self.seasonal_forecast = generate_seasonal_naive_forecast(
             sql_file_path=seasonal_sql_path,
-            glue_database=self.cfg.aws.glue_database,
-            s3_bucket=self.cfg.aws.s3_bucket,
-            as_of_datetime=self.cfg.dataset.as_of_datetime,
-            lookback_days=self.cfg.dataset.lookback_days,
-            predict_horizon_hours=self.cfg.dataset.predict_horizon_hours,
+            glue_database=self.cfg.glue_database,
+            s3_bucket=self.cfg.s3_bucket,
+            as_of_datetime=self.cfg.as_of_datetime,
+            lookback_days=self.cfg.lookback_days,
+            predict_horizon_hours=self.cfg.predict_horizon_hours,
         )
         self.next(self.write_forecasts_to_table)
 
@@ -168,11 +160,11 @@ class TrainForecastModelFlow(FlowSpec):
 
         self.write_forecast_query_id = write_forecasts_to_table(
             write_sql_path=write_sql_path,
-            glue_database=self.cfg.aws.glue_database,
-            s3_bucket=self.cfg.aws.s3_bucket,
-            as_of_datetime=self.cfg.dataset.as_of_datetime,
-            lookback_days=self.cfg.dataset.lookback_days,
-            predict_horizon_hours=self.cfg.dataset.predict_horizon_hours,
+            glue_database=self.cfg.glue_database,
+            s3_bucket=self.cfg.s3_bucket,
+            as_of_datetime=self.cfg.as_of_datetime,
+            lookback_days=self.cfg.lookback_days,
+            predict_horizon_hours=self.cfg.predict_horizon_hours,
         )
         self.next(self.end)
 
