@@ -9,7 +9,6 @@ def generate_seasonal_naive_forecast(
     sql_file_path: Path,
     glue_database: str,
     s3_bucket: str,
-    region: str,
     as_of_datetime: str,
     lookback_days: int,
     predict_horizon_hours: int,
@@ -21,7 +20,6 @@ def generate_seasonal_naive_forecast(
         sql_file_path: Path to the seasonal naive SQL file
         glue_database: AWS Glue database name
         s3_bucket: S3 bucket for query results
-        region: AWS region
         as_of_datetime: As of datetime for the forecast
         lookback_days: Number of lookback days for training
         predict_horizon_hours: Number of hours to forecast
@@ -45,17 +43,14 @@ def generate_seasonal_naive_forecast(
         sql_query=sql_query,
         glue_database=glue_database,
         s3_bucket=s3_bucket,
-        region=region,
         ctx=ctx,
     )
 
 
 def write_forecasts_to_table(
     write_sql_path: Path,
-    seasonal_sql_path: Path,  # Keep for compatibility but won't use
     glue_database: str,
     s3_bucket: str,
-    region: str,
     as_of_datetime: str,
     lookback_days: int,
     predict_horizon_hours: int,
@@ -65,10 +60,8 @@ def write_forecasts_to_table(
 
     Args:
         write_sql_path: Path to the write forecasts SQL file
-        seasonal_sql_path: Path to the seasonal naive forecast SQL file (unused, kept for compatibility)
         glue_database: AWS Glue database name
         s3_bucket: S3 bucket for query results
-        region: AWS region
         as_of_datetime: As of datetime for the forecast
         lookback_days: Number of lookback days for training
         predict_horizon_hours: Number of hours to forecast
@@ -92,6 +85,5 @@ def write_forecasts_to_table(
         sql_query=write_sql,
         glue_database=glue_database,
         s3_bucket=s3_bucket,
-        region=region,
         ctx=write_ctx,
     )

@@ -10,7 +10,6 @@ def compute_actuals(
     sql_file_path: Path,
     glue_database: str,
     s3_bucket: str,
-    region: str,
     as_of_datetime: str,
     lookback_days: int,
 ) -> str:
@@ -21,7 +20,6 @@ def compute_actuals(
         sql_file_path: Path to the compute actuals SQL file
         glue_database: AWS Glue database name
         s3_bucket: S3 bucket for query results
-        region: AWS region
         as_of_datetime: As of datetime for the computation
         lookback_days: Number of lookback days for training
 
@@ -47,7 +45,6 @@ def compute_actuals(
         sql_query=sql_query,
         glue_database=glue_database,
         s3_bucket=s3_bucket,
-        region=region,
         ctx=ctx,
     )
 
@@ -56,7 +53,6 @@ def prepare_training_data(
     sql_file_path: Path,
     glue_database: str,
     s3_bucket: str,
-    region: str,
     as_of_datetime: str,
     lookback_days: int,
 ) -> pd.DataFrame:
@@ -67,7 +63,6 @@ def prepare_training_data(
         sql_file_path: Path to the prepare training data SQL file
         glue_database: AWS Glue database name
         s3_bucket: S3 bucket for query results
-        region: AWS region
         as_of_datetime: As of datetime for the training
         lookback_days: Number of lookback days for training
 
@@ -89,6 +84,5 @@ def prepare_training_data(
         sql_query=sql_query,
         glue_database=glue_database,
         s3_bucket=s3_bucket,
-        region=region,
         ctx=ctx,
     )

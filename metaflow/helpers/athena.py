@@ -10,7 +10,6 @@ def query_pandas_from_athena(
     sql_query: str,
     glue_database: str,
     s3_bucket: str,
-    region: str,
     s3_output_location: Optional[str] = None,
     ctx: Optional[Dict[str, Any]] = None,
 ) -> pd.DataFrame:
@@ -36,17 +35,11 @@ def query_pandas_from_athena(
     if s3_output_location is None:
         s3_output_location = f"s3://{s3_bucket}/athena-results/"
 
-    # Set AWS Data Wrangler session configuration
-    import boto3
-
-    session = boto3.Session(region_name=region)
-
     # Execute query using AWS Data Wrangler
     df = wr.athena.read_sql_query(
         sql=sql_query,
         database=glue_database,
         s3_output=s3_output_location,
-        boto3_session=session,
     )
     print(f"Query executed successfully. Returned {len(df)} rows.")
     return df
@@ -56,7 +49,6 @@ def execute_query(
     sql_query: str,
     glue_database: str,
     s3_bucket: str,
-    region: str,
     s3_output_location: Optional[str] = None,
     ctx: Optional[Dict[str, Any]] = None,
 ) -> str:
@@ -82,11 +74,6 @@ def execute_query(
     if s3_output_location is None:
         s3_output_location = f"s3://{s3_bucket}/athena-results/"
 
-    # Set AWS Data Wrangler session configuration
-    import boto3
-
-    session = boto3.Session(region_name=region)
-
     # Execute DDL/DML query
     # Returns Query execution ID if wait is set to False, dictionary with the get_query_execution response otherwise.
     # https://aws-sdk-pandas.readthedocs.io/en/stable/stubs/awswrangler.athena.start_query_execution.html
@@ -95,7 +82,6 @@ def execute_query(
         sql=sql_query,
         database=glue_database,
         s3_output=s3_output_location,
-        boto3_session=session,
         # Indicates whether to wait for the query to finish and return a dictionary with the query execution response.
         wait=True,
     )
@@ -122,24 +108,3 @@ def execute_query(
         raise RuntimeError(
             f"Query finished with unexpected state: {query_state}. Query ID: {query_execution_id}"
         )
-
-
-def get_query_results_as_dict_list(df: pd.DataFrame, max_results: int = 1000) -> list:
-    """
-    Convert DataFrame results to a list of dictionaries.
-
-    Args:
-        df: Pandas DataFrame from query execution
-        max_results: Maximum number of results to return
-
-    Returns:
-        List of dictionaries representing query results
-    """
-    if df.empty:
-        return []
-
-    # Limit results if necessary
-    limited_df = df.head(max_results) if len(df) > max_results else df
-
-    # Convert to list of dictionaries
-    return limited_df.to_dict("records")

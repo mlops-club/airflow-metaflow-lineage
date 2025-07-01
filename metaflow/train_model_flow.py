@@ -71,7 +71,6 @@ class TrainForecastModelFlow(FlowSpec):
             );""",
             glue_database=self.config.aws.glue_database,
             s3_bucket=self.config.aws.s3_bucket,
-            region=self.config.aws.region,
             ctx={
                 "glue_database": self.config.aws.glue_database,
                 "s3_bucket": self.config.aws.s3_bucket,
@@ -83,7 +82,6 @@ class TrainForecastModelFlow(FlowSpec):
             sql_file_path=sql_path,
             glue_database=self.config.aws.glue_database,
             s3_bucket=self.config.aws.s3_bucket,
-            region=self.config.aws.region,
             as_of_datetime=self.config.dataset.as_of_datetime,
             lookback_days=self.config.dataset.lookback_days,
         )
@@ -110,7 +108,6 @@ class TrainForecastModelFlow(FlowSpec):
             sql_query=sql_content,
             glue_database=self.config.aws.glue_database,
             s3_bucket=self.config.aws.s3_bucket,
-            region=self.config.aws.region,
             ctx=ctx,
         )
         print(
@@ -128,7 +125,6 @@ class TrainForecastModelFlow(FlowSpec):
             sql_file_path=sql_path,
             glue_database=self.config.aws.glue_database,
             s3_bucket=self.config.aws.s3_bucket,
-            region=self.config.aws.region,
             as_of_datetime=self.config.dataset.as_of_datetime,
             lookback_days=self.config.dataset.lookback_days,
         )
@@ -147,7 +143,6 @@ class TrainForecastModelFlow(FlowSpec):
             sql_file_path=seasonal_sql_path,
             glue_database=self.config.aws.glue_database,
             s3_bucket=self.config.aws.s3_bucket,
-            region=self.config.aws.region,
             as_of_datetime=self.config.dataset.as_of_datetime,
             lookback_days=self.config.dataset.lookback_days,
             predict_horizon_hours=self.config.dataset.predict_horizon_hours,
@@ -163,14 +158,11 @@ class TrainForecastModelFlow(FlowSpec):
         from helpers.forecasting import write_forecasts_to_table
 
         write_sql_path = SQL_DIR / "write_forecasts_to_table.sql"
-        seasonal_sql_path = SQL_DIR / "seasonal_naive_forecast.sql"
 
         self.write_forecast_query_id = write_forecasts_to_table(
             write_sql_path=write_sql_path,
-            seasonal_sql_path=seasonal_sql_path,
             glue_database=self.config.aws.glue_database,
             s3_bucket=self.config.aws.s3_bucket,
-            region=self.config.aws.region,
             as_of_datetime=self.config.dataset.as_of_datetime,
             lookback_days=self.config.dataset.lookback_days,
             predict_horizon_hours=self.config.dataset.predict_horizon_hours,
