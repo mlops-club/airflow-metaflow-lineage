@@ -49,7 +49,7 @@ class TrainForecastModelFlow(FlowSpec):
         """Step 1: Compute the actuals using the SQL query."""
         from helpers.data_preparation import compute_actuals
         from helpers.athena import execute_query
-        
+
         # Create table if not exist
         execute_query(
             sql_query="""\
@@ -181,13 +181,10 @@ class TrainForecastModelFlow(FlowSpec):
     @step
     def end(self):
         print("Forecast pipeline completed!")
-        print(f"Actuals computation query ID: {self.actuals_query_id}")
-        print(f"Forecast table creation query ID: {self.forecast_table_query_id}")
         print(f"Training data preparation: {self.training_data.shape} training records")
         print(
             f"Seasonal naive forecast: {self.seasonal_forecast.shape} forecasts generated"
         )
-        print(f"Write forecasts query ID: {self.write_forecast_query_id}")
 
         # Show sample forecast data if available
         if not self.seasonal_forecast.empty:
