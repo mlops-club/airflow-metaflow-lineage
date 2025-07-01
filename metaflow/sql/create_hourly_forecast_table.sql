@@ -1,10 +1,16 @@
 CREATE TABLE IF NOT EXISTS {{ glue_database }}.yellow_rides_hourly_forecast (
+    forecast_date DATE,
+    forecast_created_at TIMESTAMP,
+    year INT,
+    month INT,
     day INT,
     hour INT,
     pulocationid INT,
-    total_rides INT
+    forecast_type STRING,
+    forecast_value INT,
+    created_at TIMESTAMP
 )
-LOCATION 's3://{{ datalake_bucket_name }}/yellow_rides_hourly_forecast/'
+LOCATION 's3://{{ s3_bucket }}/iceberg/yellow_rides_hourly_forecast/'
 TBLPROPERTIES (
     'table_type' = 'ICEBERG',
     'format' = 'parquet',

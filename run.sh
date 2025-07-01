@@ -100,7 +100,7 @@ function help {
 function generate-metaflow-config() {
     cat > "${THIS_DIR}/metaflow/config.yaml" << EOF
 dataset:
-  as_of_datetime: "2025-06-01T00:00:00Z"
+  as_of_datetime: "2025-06-01 00:00:00.000"
   lookback_days: 30
   predict_horizon_hours: 24
 aws:
@@ -116,7 +116,7 @@ EOF
 
 function run-metaflow-training() {
     generate-metaflow-config
-    uv run "./metaflow/train_model_flow.py" run
+    uv run "./metaflow/train_model_flow.py" --environment=local ${@}
 }
 
 TIMEFORMAT="Task completed in %3lR"
