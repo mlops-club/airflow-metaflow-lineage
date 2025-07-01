@@ -97,5 +97,27 @@ function help {
     compgen -A function | cat -n
 }
 
+function generate-metaflow-config() {
+    cat > "${THIS_DIR}/metaflow/config.yaml" << EOF
+dataset:
+  as_of_datetime: "2025-06-01T00:00:00Z"
+  lookback_days: 30
+  predict_horizon_hours: 24
+aws:
+  glue_database: "${GLUE_DATABASE}"
+  s3_bucket: "${S3_DATA_LAKE_BUCKET_NAME}"
+  region: "${AWS_REGION}"
+EOF
+    echo "Generated metaflow/config.yaml with:"
+    echo "  Glue Database: ${GLUE_DATABASE}"
+    echo "  S3 Bucket: ${S3_DATA_LAKE_BUCKET_NAME}"
+    echo "  AWS Region: ${AWS_REGION}"
+}
+
+function run-metaflow-training() {
+    generate-metaflow-config
+    uv run "./metaflow/train_model_flow.py" run
+}
+
 TIMEFORMAT="Task completed in %3lR"
 time ${@:-help}

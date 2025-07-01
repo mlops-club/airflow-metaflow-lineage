@@ -48,3 +48,4 @@ bash run.sh airflow dags trigger ingest_weather_data
 ```
 
 Go preview your data in athena [here](https://us-east-1.console.aws.amazon.com/athena/home?region=us-east-1#/query-editor/)
+
