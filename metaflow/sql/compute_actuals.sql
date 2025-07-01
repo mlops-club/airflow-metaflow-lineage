@@ -1,21 +1,3 @@
--- -- Create the actuals table if it doesn't exist
--- CREATE TABLE IF NOT EXISTS {{ glue_database }}.yellow_rides_hourly_actuals (
---     forecast_date DATE,
---     year INT,
---     month INT, 
---     day INT,
---     hour INT,
---     pulocationid INT,
---     total_rides INT,
---     created_at TIMESTAMP
--- )
--- LOCATION 's3://{{ s3_bucket }}/iceberg/yellow_rides_hourly_actuals/'
--- TBLPROPERTIES (
---     'table_type' = 'ICEBERG',
---     'format' = 'parquet',
---     'write_compression' = 'snappy'
--- );
-
 -- Calculate and merge/upsert hourly ride actuals for the specified date range
 MERGE INTO {{ glue_database }}.yellow_rides_hourly_actuals AS target
 USING (

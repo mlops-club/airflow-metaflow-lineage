@@ -13,24 +13,6 @@ def generate_seasonal_naive_forecast(
     lookback_days: int,
     predict_horizon_hours: int,
 ) -> pd.DataFrame:
-    """
-    Generate seasonal naive forecast using SQL.
-
-    Args:
-        sql_file_path: Path to the seasonal naive SQL file
-        glue_database: AWS Glue database name
-        s3_bucket: S3 bucket for query results
-        as_of_datetime: As of datetime for the forecast
-        lookback_days: Number of lookback days for training
-        predict_horizon_hours: Number of hours to forecast
-
-    Returns:
-        DataFrame with forecast results
-    """
-    # Read SQL file
-    sql_query = sql_file_path.read_text()
-
-    # Prepare context for Jinja2 templating
     ctx = {
         "glue_database": glue_database,
         "s3_bucket": s3_bucket,
@@ -40,7 +22,7 @@ def generate_seasonal_naive_forecast(
     }
 
     return query_pandas_from_athena(
-        sql_query=sql_query,
+        sql_query=sql_file_path.read_text(),
         glue_database=glue_database,
         s3_bucket=s3_bucket,
         ctx=ctx,

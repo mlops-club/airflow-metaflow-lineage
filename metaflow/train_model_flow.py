@@ -1,6 +1,7 @@
 from metaflow import FlowSpec, step, Config
 from pydantic import BaseModel, Field
 from pathlib import Path
+from datetime import datetime, timedelta
 import yaml
 import io
 import os
@@ -34,26 +35,23 @@ def config_parser(txt: str):
 
 
 class TrainForecastModelFlow(FlowSpec):
-    config: FlowConfig = Config(
+    cfg: FlowConfig = Config(
         "config",
-        default=THIS_DIR / "config.yaml",
+        default=str(THIS_DIR / "config.yaml"),
         parser=config_parser,
     )  # type: ignore
 
     @step
     def start(self):
-        self.next(self.compute_actuals)
+        self.next(self.compute_actuals, self.create_forecast_table)
 
     @step
     def compute_actuals(self):
-        """Step 1: Compute the actuals using the SQL query."""
-        from helpers.data_preparation import compute_actuals
         from helpers.athena import execute_query
 
-        # Create table if not exist
-        execute_query(
-            sql_query="""\
-                -- Create the actuals table if it doesn't exist
+        # create a table to contain actuals
+        create_actuals_table_sql = """\
+            -- Create the actuals table if it doesn't exist
             CREATE TABLE IF NOT EXISTS {{ glue_database }}.yellow_rides_hourly_actuals (
                 year INT,
                 month INT, 
@@ -68,116 +66,122 @@ class TrainForecastModelFlow(FlowSpec):
                 'table_type' = 'ICEBERG',
                 'format' = 'parquet',
                 'write_compression' = 'snappy'
-            );""",
-            glue_database=self.config.aws.glue_database,
-            s3_bucket=self.config.aws.s3_bucket,
+            );"""
+        
+        execute_query(
+            sql_query=create_actuals_table_sql,
+            glue_database=self.cfg.aws.glue_database,
+            s3_bucket=self.cfg.aws.s3_bucket,
             ctx={
-                "glue_database": self.config.aws.glue_database,
-                "s3_bucket": self.config.aws.s3_bucket,
+                "glue_database": self.cfg.aws.glue_database,
+                "s3_bucket": self.cfg.aws.s3_bucket,
             },
         )
 
-        sql_path = SQL_DIR / "compute_actuals.sql"
-        self.actuals_query_id = compute_actuals(
-            sql_file_path=sql_path,
-            glue_database=self.config.aws.glue_database,
-            s3_bucket=self.config.aws.s3_bucket,
-            as_of_datetime=self.config.dataset.as_of_datetime,
-            lookback_days=self.config.dataset.lookback_days,
+        # compute and merge actuals into the actuals table
+        as_of_dt = datetime.fromisoformat(self.cfg.dataset.as_of_datetime.replace("Z", "+00:00"))
+        execute_query(
+            sql_query=(SQL_DIR / "compute_actuals.sql").read_text(),
+            glue_database=self.cfg.aws.glue_database,
+            s3_bucket=self.cfg.aws.s3_bucket,
+            ctx={
+                "glue_database": self.cfg.aws.glue_database,
+                "s3_bucket": self.cfg.aws.s3_bucket,
+                "start_datetime": (as_of_dt - timedelta(days=self.cfg.dataset.lookback_days * 2)).strftime("%Y-%m-%d %H:%M:%S"),
+                "end_datetime": (as_of_dt + timedelta(days=self.cfg.dataset.lookback_days * 2)).strftime("%Y-%m-%d %H:%M:%S"),
+            },
         )
-        print(f"Actuals computation completed. Query ID: {self.actuals_query_id}")
-        self.next(self.create_forecast_table)
 
-    @step
-    def create_forecast_table(self):
-        """Step 2: Create the forecast output table using SQL query."""
-        from helpers.athena import execute_query
-
-        sql_path = SQL_DIR / "create_hourly_forecast_table.sql"
-
-        # Read SQL file using pathlib
-        sql_content = sql_path.read_text()
-
-        # Prepare context for Jinja2 templating
-        ctx = {
-            "glue_database": self.config.aws.glue_database,
-            "s3_bucket": self.config.aws.s3_bucket,
-        }
-
-        self.forecast_table_query_id = execute_query(
-            sql_query=sql_content,
-            glue_database=self.config.aws.glue_database,
-            s3_bucket=self.config.aws.s3_bucket,
-            ctx=ctx,
-        )
-        print(
-            f"Forecast table creation completed. Query ID: {self.forecast_table_query_id}"
-        )
         self.next(self.prepare_training_data)
 
     @step
-    def prepare_training_data(self):
-        """Step 3: Prepare training set from actuals table."""
+    def create_forecast_table(self):
+        from helpers.athena import execute_query
+
+        query = """\
+        CREATE TABLE IF NOT EXISTS {{ glue_database }}.yellow_rides_hourly_forecast (
+            forecast_created_at TIMESTAMP,
+            year INT,
+            month INT,
+            day INT,
+            hour INT,
+            pulocationid INT,
+            forecast_value INT
+        )
+        LOCATION 's3://{{ s3_bucket }}/iceberg/yellow_rides_hourly_forecast/'
+        TBLPROPERTIES (
+            'table_type' = 'ICEBERG',
+            'format' = 'parquet',
+            'write_compression' = 'snappy'
+        );
+        """
+
+        execute_query(
+            sql_query=query,
+            glue_database=self.cfg.aws.glue_database,
+            s3_bucket=self.cfg.aws.s3_bucket,
+            ctx={
+                "glue_database": self.cfg.aws.glue_database,
+                "s3_bucket": self.cfg.aws.s3_bucket,
+            },
+        )
+
+        self.next(self.prepare_training_data)
+
+    @step
+    def prepare_training_data(self, inputs):
         from helpers.data_preparation import prepare_training_data
 
-        sql_path = SQL_DIR / "prepare_training_data.sql"
         self.training_data_df = prepare_training_data(
-            sql_file_path=sql_path,
-            glue_database=self.config.aws.glue_database,
-            s3_bucket=self.config.aws.s3_bucket,
-            as_of_datetime=self.config.dataset.as_of_datetime,
-            lookback_days=self.config.dataset.lookback_days,
-        )
-        print(
-            f"Training data preparation completed. Dataset shape: {self.training_data_df.shape}"
+            sql_file_path=SQL_DIR / "prepare_training_data.sql",
+            glue_database=self.cfg.aws.glue_database,
+            s3_bucket=self.cfg.aws.s3_bucket,
+            as_of_datetime=self.cfg.dataset.as_of_datetime,
+            lookback_days=self.cfg.dataset.lookback_days,
         )
         self.next(self.generate_seasonal_naive_forecast)
 
     @step
     def generate_seasonal_naive_forecast(self):
-        """Step 4: Calculate seasonal naive baseline forecast."""
         from helpers.forecasting import generate_seasonal_naive_forecast
-        
+
         ## LOGIC SHOULD BE WRITTEN IN PANDAS
 
         seasonal_sql_path = SQL_DIR / "seasonal_naive_forecast.sql"
         self.seasonal_forecast = generate_seasonal_naive_forecast(
             sql_file_path=seasonal_sql_path,
-            glue_database=self.config.aws.glue_database,
-            s3_bucket=self.config.aws.s3_bucket,
-            as_of_datetime=self.config.dataset.as_of_datetime,
-            lookback_days=self.config.dataset.lookback_days,
-            predict_horizon_hours=self.config.dataset.predict_horizon_hours,
-        )
-        print(
-            f"Seasonal naive forecast completed. Forecast shape: {self.seasonal_forecast.shape}"
+            glue_database=self.cfg.aws.glue_database,
+            s3_bucket=self.cfg.aws.s3_bucket,
+            as_of_datetime=self.cfg.dataset.as_of_datetime,
+            lookback_days=self.cfg.dataset.lookback_days,
+            predict_horizon_hours=self.cfg.dataset.predict_horizon_hours,
         )
         self.next(self.write_forecasts_to_table)
 
     @step
     def write_forecasts_to_table(self):
-        """Step 5: Write forecast results to output table in an idempotent manner."""
         from helpers.forecasting import write_forecasts_to_table
-        
+
         ## DATA WRANGLER Library should do an upsert to add the predictions to forecast table
 
         write_sql_path = SQL_DIR / "write_forecasts_to_table.sql"
 
         self.write_forecast_query_id = write_forecasts_to_table(
             write_sql_path=write_sql_path,
-            glue_database=self.config.aws.glue_database,
-            s3_bucket=self.config.aws.s3_bucket,
-            as_of_datetime=self.config.dataset.as_of_datetime,
-            lookback_days=self.config.dataset.lookback_days,
-            predict_horizon_hours=self.config.dataset.predict_horizon_hours,
+            glue_database=self.cfg.aws.glue_database,
+            s3_bucket=self.cfg.aws.s3_bucket,
+            as_of_datetime=self.cfg.dataset.as_of_datetime,
+            lookback_days=self.cfg.dataset.lookback_days,
+            predict_horizon_hours=self.cfg.dataset.predict_horizon_hours,
         )
-        print(f"Write forecasts completed. Query ID: {self.write_forecast_query_id}")
         self.next(self.end)
 
     @step
     def end(self):
         print("Forecast pipeline completed!")
-        print(f"Training data preparation: {self.training_data_df.shape} training records")
+        print(
+            f"Training data preparation: {self.training_data_df.shape} training records"
+        )
         print(
             f"Seasonal naive forecast: {self.seasonal_forecast.shape} forecasts generated"
         )

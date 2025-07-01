@@ -174,8 +174,6 @@ does the seasonal naive.
 - prediction_horizon
 ```
 
-
-
 Redo this flow.
 
 1. compute the actuals using the sql query
