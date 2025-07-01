@@ -59,7 +59,7 @@ class TrainForecastModelFlow(FlowSpec):
                 'format' = 'parquet',
                 'write_compression' = 'snappy'
             );"""
-        
+
         execute_query(
             sql_query=create_actuals_table_sql,
             glue_database=self.cfg.glue_database,
@@ -71,7 +71,9 @@ class TrainForecastModelFlow(FlowSpec):
         )
 
         # compute and merge actuals into the actuals table
-        as_of_dt = datetime.fromisoformat(self.cfg.as_of_datetime.replace("Z", "+00:00"))
+        as_of_dt = datetime.fromisoformat(
+            self.cfg.as_of_datetime.replace("Z", "+00:00")
+        )
         execute_query(
             sql_query=(SQL_DIR / "compute_actuals.sql").read_text(),
             glue_database=self.cfg.glue_database,
@@ -79,8 +81,12 @@ class TrainForecastModelFlow(FlowSpec):
             ctx={
                 "glue_database": self.cfg.glue_database,
                 "s3_bucket": self.cfg.s3_bucket,
-                "start_datetime": (as_of_dt - timedelta(days=self.cfg.lookback_days * 2)).strftime("%Y-%m-%d %H:%M:%S"),
-                "end_datetime": (as_of_dt + timedelta(days=self.cfg.lookback_days * 2)).strftime("%Y-%m-%d %H:%M:%S"),
+                "start_datetime": (
+                    as_of_dt - timedelta(days=self.cfg.lookback_days * 2)
+                ).strftime("%Y-%m-%d %H:%M:%S"),
+                "end_datetime": (
+                    as_of_dt + timedelta(days=self.cfg.lookback_days * 2)
+                ).strftime("%Y-%m-%d %H:%M:%S"),
             },
         )
 
@@ -122,19 +128,34 @@ class TrainForecastModelFlow(FlowSpec):
 
     @step
     def prepare_training_data(self, inputs):
-        from helpers.data_preparation import prepare_training_data
+        from helpers.athena import query_pandas_from_athena
 
-        self.training_data_df = prepare_training_data(
-            sql_file_path=SQL_DIR / "prepare_training_data.sql",
+        self.training_data_df = query_pandas_from_athena(
+            sql_query=(SQL_DIR / "prepare_training_data.sql").read_text(),
             glue_database=self.cfg.glue_database,
             s3_bucket=self.cfg.s3_bucket,
-            as_of_datetime=self.cfg.as_of_datetime,
-            lookback_days=self.cfg.lookback_days,
+            ctx={
+                "glue_database": self.cfg.glue_database,
+                "s3_bucket": self.cfg.s3_bucket,
+                "as_of_datetime": self.cfg.as_of_datetime,
+                "lookback_days": self.cfg.lookback_days,
+            },
         )
-        self.next(self.generate_seasonal_naive_forecast)
+
+        self.next(self.train_forecasting_model)
 
     @step
-    def generate_seasonal_naive_forecast(self):
+    def train_forecasting_model(self):
+        # this is a no-op until we implement a model beyond the "seasonal naive" baseline
+        self.next(self.predict_forecast)
+
+    @step
+    def predict_forecast(self):
+        """
+        Ideally, this would be an evaluation step.
+
+        And predictions would be written to the lakehouse in a separate flow.
+        """
         from helpers.forecasting import generate_seasonal_naive_forecast
 
         ## LOGIC SHOULD BE WRITTEN IN PANDAS

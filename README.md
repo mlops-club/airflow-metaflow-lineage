@@ -11,13 +11,13 @@ Prerequisites
    4. list/create files in the s3 bucket
 2. `uv`
 
-Note: Each of these commands use uv under the hood so there should be no need to install anything.
-
 ## One-time (ish) Setup
 
 ```bash
+uv sync --all-groups
+
 # uses the sandbox profile to create an S3 bucket and Glue Database
-bash run.sh create-infra
+bash run.sh create-infra  # destroy-infra is also a command 
 
 # create an airflow sqlite db and seed it with some variables needed for the DAGs
 bash run.sh init-airflow
