@@ -55,7 +55,6 @@ class TrainForecastModelFlow(FlowSpec):
             sql_query="""\
                 -- Create the actuals table if it doesn't exist
             CREATE TABLE IF NOT EXISTS {{ glue_database }}.yellow_rides_hourly_actuals (
-                forecast_date DATE,
                 year INT,
                 month INT, 
                 day INT,
@@ -78,8 +77,6 @@ class TrainForecastModelFlow(FlowSpec):
                 "s3_bucket": self.config.aws.s3_bucket,
             },
         )
-        
-        
 
         sql_path = SQL_DIR / "compute_actuals.sql"
         self.actuals_query_id = compute_actuals(

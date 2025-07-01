@@ -3,7 +3,6 @@ WITH forecast_targets AS (
     -- Generate forecast targets for the next 24 hours from as_of_datetime
     SELECT 
         TIMESTAMP '{{ as_of_datetime }}' + INTERVAL '1' HOUR * seq as forecast_datetime,
-        DATE(TIMESTAMP '{{ as_of_datetime }}' + INTERVAL '1' HOUR * seq) as forecast_date,
         YEAR(TIMESTAMP '{{ as_of_datetime }}' + INTERVAL '1' HOUR * seq) as year,
         MONTH(TIMESTAMP '{{ as_of_datetime }}' + INTERVAL '1' HOUR * seq) as month,
         DAY(TIMESTAMP '{{ as_of_datetime }}' + INTERVAL '1' HOUR * seq) as day,
@@ -17,25 +16,24 @@ WITH forecast_targets AS (
     CROSS JOIN (
         SELECT DISTINCT pulocationid 
         FROM {{ glue_database }}.yellow_rides_hourly_actuals
-        WHERE forecast_date >= DATE(TIMESTAMP '{{ as_of_datetime }}') - INTERVAL '{{ lookback_days }}' DAY
+        WHERE DATE(CONCAT(CAST(year AS VARCHAR), '-', 
+                         LPAD(CAST(month AS VARCHAR), 2, '0'), '-',
+                         LPAD(CAST(day AS VARCHAR), 2, '0'))) >= DATE(SUBSTR('{{ as_of_datetime }}', 1, 10)) - INTERVAL '{{ lookback_days }}' DAY
     ) AS locations
 ),
 seasonal_forecasts AS (
     SELECT 
-        ft.forecast_date,
         ft.year,
         ft.month,
         ft.day,
         ft.hour,
         ft.pulocationid,
-        'seasonal_naive' as forecast_type,
-        COALESCE(actuals.total_rides, 0) as forecast_value,
-        TIMESTAMP '{{ as_of_datetime }}' as forecast_created_at,
-        -- current_timestamp as created_at
-        TIMESTAMP '{{ as_of_datetime }}' as created_at
+        COALESCE(actuals.total_rides, 0) as forecast_value
     FROM forecast_targets ft
     LEFT JOIN {{ glue_database }}.yellow_rides_hourly_actuals actuals
-        ON actuals.forecast_date = DATE(ft.forecast_datetime - INTERVAL '7' DAY)
+        ON DATE(CONCAT(CAST(actuals.year AS VARCHAR), '-', 
+                       LPAD(CAST(actuals.month AS VARCHAR), 2, '0'), '-',
+                       LPAD(CAST(actuals.day AS VARCHAR), 2, '0'))) = DATE(ft.forecast_datetime - INTERVAL '7' DAY)
         AND actuals.hour = ft.hour
         AND actuals.pulocationid = ft.pulocationid
 )

@@ -74,10 +74,6 @@ def prepare_training_data(
     Returns:
         DataFrame with training data
     """
-    # Calculate training start date
-    as_of_dt = datetime.fromisoformat(as_of_datetime.replace("Z", "+00:00"))
-    training_start_dt = as_of_dt - timedelta(days=lookback_days)
-
     # Read SQL file
     sql_query = sql_file_path.read_text()
 
@@ -85,8 +81,8 @@ def prepare_training_data(
     ctx = {
         "glue_database": glue_database,
         "s3_bucket": s3_bucket,
-        "training_start_date": training_start_dt.strftime("%Y-%m-%d"),
-        "as_of_datetime": as_of_dt.strftime("%Y-%m-%d"),
+        "as_of_datetime": as_of_datetime,
+        "lookback_days": lookback_days,
     }
 
     return query_pandas_from_athena(

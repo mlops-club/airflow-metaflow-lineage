@@ -1,7 +1,6 @@
 -- Prepare training data by selecting records from actuals table
--- from as_of_datetime - lookback_days back to ensure we have sufficient history
+-- from as_of_datetime - lookback_days to as_of_datetime to ensure we have sufficient history
 SELECT 
-    forecast_date,
     year,
     month,
     day,
@@ -9,6 +8,10 @@ SELECT
     pulocationid,
     total_rides
 FROM {{ glue_database }}.yellow_rides_hourly_actuals
-WHERE forecast_date >= DATE('{{ training_start_date }}')
-  AND forecast_date < DATE('{{ as_of_datetime }}')
-ORDER BY forecast_date, hour, pulocationid;
+WHERE DATE(CONCAT(CAST(year AS VARCHAR), '-', 
+                  LPAD(CAST(month AS VARCHAR), 2, '0'), '-',
+                  LPAD(CAST(day AS VARCHAR), 2, '0'))) >= DATE(SUBSTR('{{ as_of_datetime }}', 1, 10)) - INTERVAL '{{ lookback_days }}' DAY
+  AND DATE(CONCAT(CAST(year AS VARCHAR), '-', 
+                  LPAD(CAST(month AS VARCHAR), 2, '0'), '-',
+                  LPAD(CAST(day AS VARCHAR), 2, '0'))) < DATE(SUBSTR('{{ as_of_datetime }}', 1, 10))
+ORDER BY year, month, day, hour, pulocationid;
