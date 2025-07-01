@@ -3,7 +3,9 @@
 import awswrangler as wr
 import pandas as pd
 from typing import Optional, Dict, Any
-from .utils import substitute_map_into_string
+from typing import Any
+from jinja2 import DebugUndefined, Template
+
 
 
 def query_pandas_from_athena(
@@ -108,3 +110,12 @@ def execute_query(
         raise RuntimeError(
             f"Query finished with unexpected state: {query_state}. Query ID: {query_execution_id}"
         )
+
+def substitute_map_into_string(string: str, values: dict[str, Any]) -> str:
+    """Format a string using a dictionary with Jinja2 templating.
+
+    :param string: The template string containing placeholders
+    :param values: A dictionary of values to substitute into the template
+    """
+    template = Template(string, undefined=DebugUndefined)
+    return template.render(values)

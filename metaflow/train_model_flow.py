@@ -16,7 +16,7 @@ class FlowConfig(BaseModel):
     predict_horizon_hours: int = Field(gt=0, default=24)
     glue_database: str
     s3_bucket: str
-    region: str = "us-east-1"
+    region: str
 
 
 def config_parser(txt: str):
@@ -160,33 +160,28 @@ class TrainForecastModelFlow(FlowSpec):
 
         ## LOGIC SHOULD BE WRITTEN IN PANDAS
 
-        seasonal_sql_path = SQL_DIR / "seasonal_naive_forecast.sql"
         self.seasonal_forecast = generate_seasonal_naive_forecast(
-            sql_file_path=seasonal_sql_path,
-            glue_database=self.cfg.glue_database,
-            s3_bucket=self.cfg.s3_bucket,
             as_of_datetime=self.cfg.as_of_datetime,
-            lookback_days=self.cfg.lookback_days,
             predict_horizon_hours=self.cfg.predict_horizon_hours,
         )
         self.next(self.write_forecasts_to_table)
 
     @step
     def write_forecasts_to_table(self):
-        from helpers.forecasting import write_forecasts_to_table
+        import awswrangler as wr
 
-        ## DATA WRANGLER Library should do an upsert to add the predictions to forecast table
+        self.seasonal_forecast["forecast_created_at"] = datetime.utcnow()
 
-        write_sql_path = SQL_DIR / "write_forecasts_to_table.sql"
-
-        self.write_forecast_query_id = write_forecasts_to_table(
-            write_sql_path=write_sql_path,
-            glue_database=self.cfg.glue_database,
-            s3_bucket=self.cfg.s3_bucket,
-            as_of_datetime=self.cfg.as_of_datetime,
-            lookback_days=self.cfg.lookback_days,
-            predict_horizon_hours=self.cfg.predict_horizon_hours,
+        wr.athena.to_iceberg(
+            df=self.seasonal_forecast,
+            database=self.cfg.glue_database,
+            table="yellow_rides_hourly_forecast",
+            mode="append",
+            keep_files=False, # CLEAN UP duplicate files or you'll regret it!
+            merge_condition="update",
+            merge_cols=["pulocationid", "year", "month", "day", "hour"],
         )
+        
         self.next(self.end)
 
     @step
