@@ -121,7 +121,7 @@ class TrainForecastModelFlow(FlowSpec):
         from helpers.data_preparation import prepare_training_data
 
         sql_path = SQL_DIR / "prepare_training_data.sql"
-        self.training_data = prepare_training_data(
+        self.training_data_df = prepare_training_data(
             sql_file_path=sql_path,
             glue_database=self.config.aws.glue_database,
             s3_bucket=self.config.aws.s3_bucket,
@@ -129,7 +129,7 @@ class TrainForecastModelFlow(FlowSpec):
             lookback_days=self.config.dataset.lookback_days,
         )
         print(
-            f"Training data preparation completed. Dataset shape: {self.training_data.shape}"
+            f"Training data preparation completed. Dataset shape: {self.training_data_df.shape}"
         )
         self.next(self.generate_seasonal_naive_forecast)
 
@@ -137,6 +137,8 @@ class TrainForecastModelFlow(FlowSpec):
     def generate_seasonal_naive_forecast(self):
         """Step 4: Calculate seasonal naive baseline forecast."""
         from helpers.forecasting import generate_seasonal_naive_forecast
+        
+        ## LOGIC SHOULD BE WRITTEN IN PANDAS
 
         seasonal_sql_path = SQL_DIR / "seasonal_naive_forecast.sql"
         self.seasonal_forecast = generate_seasonal_naive_forecast(
@@ -156,6 +158,8 @@ class TrainForecastModelFlow(FlowSpec):
     def write_forecasts_to_table(self):
         """Step 5: Write forecast results to output table in an idempotent manner."""
         from helpers.forecasting import write_forecasts_to_table
+        
+        ## DATA WRANGLER Library should do an upsert to add the predictions to forecast table
 
         write_sql_path = SQL_DIR / "write_forecasts_to_table.sql"
 
@@ -173,7 +177,7 @@ class TrainForecastModelFlow(FlowSpec):
     @step
     def end(self):
         print("Forecast pipeline completed!")
-        print(f"Training data preparation: {self.training_data.shape} training records")
+        print(f"Training data preparation: {self.training_data_df.shape} training records")
         print(
             f"Seasonal naive forecast: {self.seasonal_forecast.shape} forecasts generated"
         )
