@@ -103,7 +103,7 @@ as_of_datetime: "2025-06-01 00:00:00.000"
 lookback_days: 30
 predict_horizon_hours: 24
 glue_database: "${GLUE_DATABASE}"
-s3_bucket: "${S3_DATA_LAKE_BUCKET_NAME}"
+datalake_s3_bucket: "${S3_DATA_LAKE_BUCKET_NAME}"
 region: "${AWS_REGION}"
 EOF
     echo "Generated metaflow/config.yaml with:"
@@ -112,7 +112,7 @@ EOF
     echo "  AWS Region: ${AWS_REGION}"
 }
 
-function run-metaflow-training() {
+function training-flow() {
     generate-metaflow-config
     uv run "./metaflow/train_model_flow.py" --environment=uv ${@}
 }

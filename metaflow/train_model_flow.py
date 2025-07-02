@@ -15,7 +15,7 @@ class FlowConfig(BaseModel):
     lookback_days: int = Field(gt=0, default=30)
     predict_horizon_hours: int = Field(gt=0, default=24)
     glue_database: str
-    s3_bucket: str
+    datalake_s3_bucket: str
     region: str
 
 
@@ -26,7 +26,7 @@ def config_parser(txt: str):
     return validated_config.model_dump()
 
 
-class TrainForecastModelFlow(FlowSpec):
+class ForecastNumberOfYellowTaxiRides(FlowSpec):
     cfg: FlowConfig = Config(
         "config",
         default=str(THIS_DIR / "config.yaml"),
@@ -53,7 +53,7 @@ class TrainForecastModelFlow(FlowSpec):
                 total_rides BIGINT,
                 created_at TIMESTAMP
             )
-            LOCATION 's3://{{ s3_bucket }}/iceberg/yellow_rides_hourly_actuals/'
+            LOCATION 's3://{{ datalake_s3_bucket }}/iceberg/yellow_rides_hourly_actuals/'
             TBLPROPERTIES (
                 'table_type' = 'ICEBERG',
                 'format' = 'parquet',
@@ -63,10 +63,10 @@ class TrainForecastModelFlow(FlowSpec):
         execute_query(
             sql_query=create_actuals_table_sql,
             glue_database=self.cfg.glue_database,
-            s3_bucket=self.cfg.s3_bucket,
+            datalake_s3_bucket=self.cfg.datalake_s3_bucket,
             ctx={
                 "glue_database": self.cfg.glue_database,
-                "s3_bucket": self.cfg.s3_bucket,
+                "datalake_s3_bucket": self.cfg.datalake_s3_bucket,
             },
         )
 
@@ -77,10 +77,10 @@ class TrainForecastModelFlow(FlowSpec):
         execute_query(
             sql_query=(SQL_DIR / "compute_actuals.sql").read_text(),
             glue_database=self.cfg.glue_database,
-            s3_bucket=self.cfg.s3_bucket,
+            datalake_s3_bucket=self.cfg.datalake_s3_bucket,
             ctx={
                 "glue_database": self.cfg.glue_database,
-                "s3_bucket": self.cfg.s3_bucket,
+                "datalake_s3_bucket": self.cfg.datalake_s3_bucket,
                 "start_datetime": (
                     as_of_dt - timedelta(days=self.cfg.lookback_days * 2)
                 ).strftime("%Y-%m-%d %H:%M:%S"),
@@ -111,7 +111,7 @@ class TrainForecastModelFlow(FlowSpec):
             forecasted_total_rides BIGINT,
             metaflow_run_id STRING
         )
-        LOCATION 's3://{{ s3_bucket }}/iceberg/yellow_rides_hourly_forecast/'
+        LOCATION 's3://{{ datalake_s3_bucket }}/iceberg/yellow_rides_hourly_forecast/'
         TBLPROPERTIES (
             'table_type' = 'ICEBERG',
             'format' = 'parquet',
@@ -122,10 +122,10 @@ class TrainForecastModelFlow(FlowSpec):
         execute_query(
             sql_query=query,
             glue_database=self.cfg.glue_database,
-            s3_bucket=self.cfg.s3_bucket,
+            datalake_s3_bucket=self.cfg.datalake_s3_bucket,
             ctx={
                 "glue_database": self.cfg.glue_database,
-                "s3_bucket": self.cfg.s3_bucket,
+                "datalake_s3_bucket": self.cfg.datalake_s3_bucket,
             },
         )
 
@@ -138,10 +138,10 @@ class TrainForecastModelFlow(FlowSpec):
         self.training_data_df = query_pandas_from_athena(
             sql_query=(SQL_DIR / "prepare_training_data.sql").read_text(),
             glue_database=self.cfg.glue_database,
-            s3_bucket=self.cfg.s3_bucket,
+            datalake_s3_bucket=self.cfg.datalake_s3_bucket,
             ctx={
                 "glue_database": self.cfg.glue_database,
-                "s3_bucket": self.cfg.s3_bucket,
+                "datalake_s3_bucket": self.cfg.datalake_s3_bucket,
                 "as_of_datetime": self.cfg.as_of_datetime,
                 "lookback_days": self.cfg.lookback_days,
             },
@@ -198,7 +198,7 @@ class TrainForecastModelFlow(FlowSpec):
             keep_files=False, # CLEAN UP duplicate files or you'll regret it!
             merge_condition="update",
             merge_cols=["pulocationid", "year", "month", "day", "hour"],
-            temp_path= f"s3://{self.cfg.s3_bucket}/athena-results/temp/",
+            temp_path= f"s3://{self.cfg.datalake_s3_bucket}/athena-results/temp/",
             schema_evolution=False,
         )
         
@@ -223,4 +223,4 @@ class TrainForecastModelFlow(FlowSpec):
 
 
 if __name__ == "__main__":
-    TrainForecastModelFlow()
+    ForecastNumberOfYellowTaxiRides()

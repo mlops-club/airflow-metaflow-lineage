@@ -22,7 +22,7 @@ def drop_tables():
     # Load configuration
     config = load_config()
     glue_database = config['glue_database']
-    s3_bucket = config['s3_bucket']
+    datalake_s3_bucket = config['datalake_s3_bucket']
     
     print(f"Dropping tables in database: {glue_database}")
     
@@ -43,10 +43,10 @@ def drop_tables():
             query_id = execute_query(
                 sql_query=drop_sql,
                 glue_database=glue_database,
-                s3_bucket=s3_bucket,
+                datalake_s3_bucket=datalake_s3_bucket,
                 ctx={
                     "glue_database": glue_database,
-                    "s3_bucket": s3_bucket,
+                    "datalake_s3_bucket": datalake_s3_bucket,
                 }
             )
             print(f"✓ Successfully dropped table {table_name} (Query ID: {query_id})")
@@ -54,7 +54,7 @@ def drop_tables():
             print(f"✗ Failed to drop table {table_name}: {str(e)}")
     
     print("\nTable cleanup completed!")
-    print(f"Note: S3 data files in s3://{s3_bucket}/iceberg/ may still exist.")
+    print(f"Note: S3 data files in s3://{datalake_s3_bucket}/iceberg/ may still exist.")
     print("You may want to manually clean up S3 files if needed.")
 
 if __name__ == "__main__":

@@ -11,7 +11,7 @@ from jinja2 import DebugUndefined, Template
 def query_pandas_from_athena(
     sql_query: str,
     glue_database: str,
-    s3_bucket: str,
+    datalake_s3_bucket: str,
     s3_output_location: Optional[str] = None,
     ctx: Optional[Dict[str, Any]] = None,
 ) -> pd.DataFrame:
@@ -22,7 +22,7 @@ def query_pandas_from_athena(
     Args:
         sql_query: SQL query string (can contain Jinja2 template variables)
         glue_database: AWS Glue database name
-        s3_bucket: S3 bucket for query results
+        datalake_s3_bucket: S3 bucket for query results
         region: AWS region
         s3_output_location: S3 location for query results (optional)
         ctx: Optional context dictionary for Jinja2 template substitution
@@ -35,7 +35,7 @@ def query_pandas_from_athena(
         sql_query = substitute_map_into_string(sql_query, ctx)
 
     if s3_output_location is None:
-        s3_output_location = f"s3://{s3_bucket}/athena-results/"
+        s3_output_location = f"s3://{datalake_s3_bucket}/athena-results/"
 
     # Execute query using AWS Data Wrangler
     df = wr.athena.read_sql_query(
@@ -50,7 +50,7 @@ def query_pandas_from_athena(
 def execute_query(
     sql_query: str,
     glue_database: str,
-    s3_bucket: str,
+    datalake_s3_bucket: str,
     s3_output_location: Optional[str] = None,
     ctx: Optional[Dict[str, Any]] = None,
 ) -> str:
@@ -61,7 +61,7 @@ def execute_query(
     Args:
         sql_query: SQL query string (can contain Jinja2 template variables)
         glue_database: AWS Glue database name
-        s3_bucket: S3 bucket for query results
+        datalake_s3_bucket: S3 bucket for query results
         region: AWS region
         s3_output_location: S3 location for query results (optional)
         ctx: Optional context dictionary for Jinja2 template substitution
@@ -74,7 +74,7 @@ def execute_query(
         sql_query = substitute_map_into_string(sql_query, ctx)
 
     if s3_output_location is None:
-        s3_output_location = f"s3://{s3_bucket}/athena-results/"
+        s3_output_location = f"s3://{datalake_s3_bucket}/athena-results/"
 
     # Execute DDL/DML query
     # Returns Query execution ID if wait is set to False, dictionary with the get_query_execution response otherwise.
