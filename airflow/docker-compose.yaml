@@ -1,0 +1,53 @@
+version: '3'
+
+x-airflow-common:
+  &airflow-common
+  build: .
+  environment:
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://postgres:postgres@postgres:5432/airflow
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__CORE__FERNET_KEY: FB0o_zt4e3Ziq3LdUUO7F2Z95cvFFx16hU8jTeR1ASM=
+    AIRFLOW__CORE__LOAD_EXAMPLES: False
+    AIRFLOW__LOGGING__LOGGING_LEVEL: INFO
+    AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/dags
+    AWS_PROFILE: ${AWS_PROFILE}
+    AWS_REGION: ${AWS_REGION}
+    S3_DATA_LAKE_BUCKET_NAME: ${S3_DATA_LAKE_BUCKET_NAME}
+    GLUE_DATABASE: ${GLUE_DATABASE}
+    AIRFLOW__WEBSERVER__WEB_SERVER_PORT: ${AIRFLOW__WEBSERVER__WEB_SERVER_PORT}
+    # AIRFLOW__LOGGING__WORKER_LOG_SERVER_PORT: ${AIRFLOW__LOGGING__WORKER_LOG_SERVER_PORT}
+    # AIRFLOW__LOGGING__TRIGGER_LOG_SERVER_PORT: ${AIRFLOW__LOGGING__TRIGGER_LOG_SERVER_PORT}
+  volumes:
+    - ./dags:/opt/airflow/dags
+    - ./logs:/opt/airflow/logs
+    - ./plugins:/opt/airflow/plugins
+    - ~/.aws:/home/airflow/.aws
+  depends_on:
+    - postgres
+  user: "${AIRFLOW_UID:-50000}:0"
+
+services:
+  postgres:
+    image: postgres:12
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: airflow
+      POSTGRES_PORT: 5432
+    ports:
+      - "5432:5432"
+
+  airflow-webserver:
+    << : *airflow-common
+    command: airflow webserver
+    entrypoint: /entrypoint.sh
+    ports:
+      - ${AIRFLOW__WEBSERVER__WEB_SERVER_PORT}:${AIRFLOW__WEBSERVER__WEB_SERVER_PORT}
+    container_name: airflow_webserver
+    restart: always
+
+  airflow-scheduler:
+    << : *airflow-common
+    command: airflow scheduler
+    container_name: airflow_scheduler
+    restart: always

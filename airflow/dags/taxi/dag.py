@@ -1,6 +1,12 @@
-from airflow.sdk import dag, task, Variable
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.providers.amazon.aws.operators.athena import AthenaOperator
+try:
+    # Airflow 3+
+    from airflow.sdk import dag, task, Variable
+except ImportError:
+    # Airflow 2.x
+    from airflow.decorators import dag, task
+    from airflow.models import Variable
 
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
@@ -104,7 +110,7 @@ def download_and_stage_data_idempotently() -> None:
     today = datetime.now(timezone.utc).date()
     target_months = []
     for i in range(1, 4):  # Last 3 months
-        target_date = today - timedelta(days=30 * i)
+        target_date = today - timedelta(days=31 * i)
         target_months.append((target_date.year, target_date.month))
 
     files_downloaded = 0

@@ -1,7 +1,9 @@
 
 ![](./images/airflow-metaflow.excalidraw.svg)
 
-This project will demonstrate how to capture and visualize data asset lineage between assets that are produced and consumed by 2+ workflow orchestration tools. The assets will include files, iceberg lakehouse tables on AWS Glue/S3, and ML models.
+This project will demonstrate how to capture and visualize data asset lineage between assets that are produced and consumed by 2+ workflow orchestration tools. 
+
+The assets will include files, iceberg lakehouse tables on AWS Glue/S3, and ML models.
 
 In this case, we will use
 
@@ -42,17 +44,17 @@ Prerequisites
 uv sync --all-groups
 
 # uses the sandbox profile to create an S3 bucket and Glue Database
-bash run.sh create-infra  # destroy-infra is also a command 
+bash run create-infra  # destroy-infra is also a command 
 
 # create an airflow sqlite db and seed it with some variables needed for the DAGs
-bash run.sh init-airflow
+bash run init-airflow
 ```
 
 ### Step 2 - Run the Airflow DAGs
 
 ```bash
 # start the airflow UI
-bash run.sh airflow standalone
+bash run airflow standalone
 ```
 
 You can see the UI at [`localhost:8080`](http://localhost:8080) 
@@ -71,7 +73,7 @@ Go preview your data in athena [here](https://us-east-1.console.aws.amazon.com/a
 ### Step 3 - Run the Metaflow flow
 
 ```bash
-bash run.sh training-flow run
+bash run training-flow run
 ```
 
 ### Done! 🎉
@@ -157,3 +159,12 @@ This diagram is hand-wavy:
 
 **Insight:** not every pair of steps is connected by a shared input/output. How will we
 represent this in OpenLineage and DataHub?
+
+
+## DataHub Integration
+
+Resources
+
+- [Airflow-DataHub integration docs](https://docs.datahub.com/docs/lineage/airflow)
+- [Datahub Docker Quickstart](https://docs.datahub.com/docs/quickstart)
+

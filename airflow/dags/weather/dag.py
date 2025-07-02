@@ -1,7 +1,13 @@
 from typing import Literal
-from airflow.sdk import dag, task, Variable
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.providers.amazon.aws.operators.athena import AthenaOperator
+try:
+    # Airflow 3+
+    from airflow.sdk import dag, task, Variable
+except ImportError:
+    # Airflow 2.x
+    from airflow.decorators import dag, task
+    from airflow.models import Variable
 
 from pathlib import Path
 from datetime import datetime
@@ -86,7 +92,7 @@ def download_and_stage_data() -> None:
         s3.delete_objects(bucket=S3_DATA_LAKE_BUCKET, keys=old_keys)
 
     # Weather data is typically available with some delay, let's try 2 months back
-    weather_upload_delay_months = 2
+    weather_upload_delay_months = 3 # 2
     today = datetime.now().date()
     most_recently_published_month = today - relativedelta(months=weather_upload_delay_months)
 

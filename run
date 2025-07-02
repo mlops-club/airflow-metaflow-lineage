@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -ex
 
 export AWS_PROFILE=sandbox
 export AWS_REGION=us-east-1
@@ -16,6 +16,13 @@ export GLUE_DATABASE="nyc_taxi"
 export PULUMI_PROJECT_NAME="airflow-metaflow-lineage"
 export PULUMI_STACK_NAME="dev"
 
+# so as not to conflict with one of the datahub services on 8080
+# export AIRFLOW__API__PORT=8081
+export AIRFLOW__WEBSERVER__WEB_SERVER_PORT=9090
+export AIRFLOW__LOGGING__WORKER_LOG_SERVER_PORT=9091
+export AIRFLOW__LOGGING__TRIGGER_LOG_SERVER_PORT=9092
+
+
 THIS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 
@@ -26,9 +33,13 @@ function airflow() {
     export AWS_PROFILE=sandbox
     export AWS_REGION=us-east-1
     export AWS_DEFAULT_REGION=us-east-1
-    uvx \
-        --with "apache-airflow-providers-amazon" \
-        --from "apache-airflow-core>=3.0.2" airflow ${@}
+    uv run airflow ${@}
+}
+
+function airflow-docker() {
+    pushd "${THIS_DIR}/airflow"
+    docker compose up --build
+    popd
 }
 
 function init-airflow() {
@@ -38,6 +49,16 @@ function init-airflow() {
     airflow variables set datalake-aws-region "${AWS_REGION}"
     airflow variables set datalake-s3-bucket "${S3_DATA_LAKE_BUCKET_NAME}"
     airflow variables set datalake-glue-database "${GLUE_DATABASE}"
+
+    airflow connections add  --conn-type 'datahub-rest' 'datahub_rest_default' --conn-host 'http://localhost:8080'
+
+    airflow users create \
+        --username test \
+        --password test \
+        --firstname test \
+        --lastname test \
+        --role Admin \
+        --email test@test.com
 }
 
 function start-airflow() {
@@ -99,6 +120,7 @@ function help {
 
 function generate-metaflow-config() {
     cat > "${THIS_DIR}/metaflow/config.yaml" << EOF
+# this file is auto-generaged by 'bash run.sh generate-metaflow-config'
 as_of_datetime: "2025-06-01 00:00:00.000"
 lookback_days: 30
 predict_horizon_hours: 24
