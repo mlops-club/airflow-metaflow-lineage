@@ -5,7 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "(Airflow) Python: Current File",
+            "name": "Airflow: Current File",
             "type": "debugpy",
             "request": "launch",
             "program": "${file}",
@@ -16,6 +16,17 @@
                 // which mirrors the value of the variable when running a DAG via the airflow server
                 "PYTHONPATH": "${workspaceFolder}/airflow"
             },
+        },
+        {
+            "name": "Metaflow: Current File",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "env": {
+                "AWS_PROFILE": "sandbox",
+            },
+            "args": ["run"]
         }
     ]
 }

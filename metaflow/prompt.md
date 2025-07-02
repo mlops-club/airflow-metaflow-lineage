@@ -83,7 +83,7 @@ dataset:
   predict_horizon_hours: 24
 aws:
   glue_database: "nyc_taxi"
-  s3_bucket: "nyc-taxi-forecasting"
+  datalake_s3_bucket: "nyc-taxi-forecasting"
   region: "us-east-1"
 ```
 
@@ -173,8 +173,6 @@ does the seasonal naive.
 - lookback_n_periods
 - prediction_horizon
 ```
-
-
 
 Redo this flow.
 

@@ -99,14 +99,12 @@ function help {
 
 function generate-metaflow-config() {
     cat > "${THIS_DIR}/metaflow/config.yaml" << EOF
-dataset:
-  as_of_datetime: "2025-06-01T00:00:00Z"
-  lookback_days: 30
-  predict_horizon_hours: 24
-aws:
-  glue_database: "${GLUE_DATABASE}"
-  s3_bucket: "${S3_DATA_LAKE_BUCKET_NAME}"
-  region: "${AWS_REGION}"
+as_of_datetime: "2025-06-01 00:00:00.000"
+lookback_days: 30
+predict_horizon_hours: 24
+glue_database: "${GLUE_DATABASE}"
+datalake_s3_bucket: "${S3_DATA_LAKE_BUCKET_NAME}"
+region: "${AWS_REGION}"
 EOF
     echo "Generated metaflow/config.yaml with:"
     echo "  Glue Database: ${GLUE_DATABASE}"
@@ -114,9 +112,15 @@ EOF
     echo "  AWS Region: ${AWS_REGION}"
 }
 
-function run-metaflow-training() {
+function training-flow() {
     generate-metaflow-config
-    uv run "./metaflow/train_model_flow.py" run
+    uv run "./metaflow/train_model_flow.py" --environment=uv ${@}
+}
+
+function drop-metaflow-tables() {
+    generate-metaflow-config
+    echo "Dropping all tables managed by the Metaflow training flow..."
+    uv run "./metaflow/drop_tables.py"
 }
 
 TIMEFORMAT="Task completed in %3lR"
