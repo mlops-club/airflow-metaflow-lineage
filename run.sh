@@ -114,7 +114,13 @@ EOF
 
 function run-metaflow-training() {
     generate-metaflow-config
-    uv run "./metaflow/train_model_flow.py" --environment=local ${@}
+    uv run "./metaflow/train_model_flow.py" --environment=uv ${@}
+}
+
+function drop-metaflow-tables() {
+    generate-metaflow-config
+    echo "Dropping all tables managed by the Metaflow training flow..."
+    uv run "./metaflow/drop_tables.py"
 }
 
 TIMEFORMAT="Task completed in %3lR"

@@ -1,10 +1,10 @@
-from metaflow import FlowSpec, step, Config
+from metaflow import FlowSpec, step, Config, current
 from pydantic import BaseModel, Field
 from pathlib import Path
 from datetime import datetime, timedelta
 import yaml
 import io
-import os
+
 
 THIS_DIR = Path(__file__).parent
 SQL_DIR = THIS_DIR / "sql"
@@ -45,12 +45,12 @@ class TrainForecastModelFlow(FlowSpec):
         create_actuals_table_sql = """\
             -- Create the actuals table if it doesn't exist
             CREATE TABLE IF NOT EXISTS {{ glue_database }}.yellow_rides_hourly_actuals (
-                year INT,
-                month INT, 
-                day INT,
-                hour INT,
-                pulocationid INT,
-                total_rides INT,
+                year BIGINT,
+                month BIGINT, 
+                day BIGINT,
+                hour BIGINT,
+                pulocationid BIGINT,
+                total_rides BIGINT,
                 created_at TIMESTAMP
             )
             LOCATION 's3://{{ s3_bucket }}/iceberg/yellow_rides_hourly_actuals/'
@@ -98,13 +98,18 @@ class TrainForecastModelFlow(FlowSpec):
 
         query = """\
         CREATE TABLE IF NOT EXISTS {{ glue_database }}.yellow_rides_hourly_forecast (
-            forecast_created_at TIMESTAMP,
-            year INT,
-            month INT,
-            day INT,
-            hour INT,
-            pulocationid INT,
-            forecast_value INT
+            -- created_at TIMESTAMP, -- for the life of me, I can't set this value via pandas and awswrangler
+            year BIGINT, -- these needed to be BIGINT's rather than INT's due to 
+                         -- wr.athena.to_iceberg() type casting pandas integers to BIGINTs
+                         -- It is not ideal that we changed our DDL to something more expensive
+                         -- just because this one insert function is so picky, but we can
+                         -- revisit this issue later.
+            month BIGINT,
+            day BIGINT,
+            hour BIGINT,
+            pulocationid BIGINT,
+            forecasted_total_rides BIGINT,
+            metaflow_run_id STRING
         )
         LOCATION 's3://{{ s3_bucket }}/iceberg/yellow_rides_hourly_forecast/'
         TBLPROPERTIES (
@@ -157,20 +162,33 @@ class TrainForecastModelFlow(FlowSpec):
         And predictions would be written to the lakehouse in a separate flow.
         """
         from helpers.forecasting import generate_seasonal_naive_forecast
+        import pandas as pd
 
-        ## LOGIC SHOULD BE WRITTEN IN PANDAS
-
-        self.seasonal_forecast = generate_seasonal_naive_forecast(
-            as_of_datetime=self.cfg.as_of_datetime,
+        # Populate up_to_as_of_datetime with training data up to the as_of_datetime
+        as_of_dt = datetime.fromisoformat(
+            self.cfg.as_of_datetime.replace("Z", "+00:00")
+        )
+        
+        up_to_as_of_datetime = self.training_data_df[
+            pd.to_datetime(self.training_data_df[['year', 'month', 'day', 'hour']]) <= as_of_dt
+        ].copy()
+        
+        self.seasonal_forecast: pd.DataFrame = generate_seasonal_naive_forecast(
             predict_horizon_hours=self.cfg.predict_horizon_hours,
+            up_to_as_of_datetime=up_to_as_of_datetime,
         )
         self.next(self.write_forecasts_to_table)
 
     @step
     def write_forecasts_to_table(self):
+        # TODO: move this step to a separate inference flow that does more extensive testing and/or runs inference
         import awswrangler as wr
 
-        self.seasonal_forecast["forecast_created_at"] = datetime.utcnow()
+        # Add created_at column with proper datetime format
+        # These lines DO NOT WORK with awswrangler.to_iceberg... tried for hours, ran into type casting errors
+        # self.seasonal_forecast["created_at"] = pd.Timestamp.now()
+        # self.seasonal_forecast["created_at"] = self.seasonal_forecast["created_at"].astype('datetime64[ns]')
+        self.seasonal_forecast["metaflow_run_id"] = current.run_id
 
         wr.athena.to_iceberg(
             df=self.seasonal_forecast,
@@ -180,6 +198,8 @@ class TrainForecastModelFlow(FlowSpec):
             keep_files=False, # CLEAN UP duplicate files or you'll regret it!
             merge_condition="update",
             merge_cols=["pulocationid", "year", "month", "day", "hour"],
+            temp_path= f"s3://{self.cfg.s3_bucket}/athena-results/temp/",
+            schema_evolution=False,
         )
         
         self.next(self.end)
@@ -203,8 +223,4 @@ class TrainForecastModelFlow(FlowSpec):
 
 
 if __name__ == "__main__":
-    os.environ["AWS_PROFILE"] = "sandbox"
-    os.environ["AWS_REGION"] = "us-east-1"
-    os.environ["AWS_DEFAULT_REGION"] = "us-east-1"
-
     TrainForecastModelFlow()
