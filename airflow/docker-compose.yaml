@@ -17,6 +17,9 @@ x-airflow-common:
     AIRFLOW__WEBSERVER__WEB_SERVER_PORT: ${AIRFLOW__WEBSERVER__WEB_SERVER_PORT}
     # AIRFLOW__LOGGING__WORKER_LOG_SERVER_PORT: ${AIRFLOW__LOGGING__WORKER_LOG_SERVER_PORT}
     # AIRFLOW__LOGGING__TRIGGER_LOG_SERVER_PORT: ${AIRFLOW__LOGGING__TRIGGER_LOG_SERVER_PORT}
+    # this points to Marquez (api port 9000)
+    # AIRFLOW__OPENLINEAGE__TRANSPORT: '{"type": "http", "url": "http://host.docker.internal:9000", "endpoint": "api/v1/lineage"}'
+    AIRFLOW__OPENLINEAGE__TRANSPORT: '{"type": "console"}'
   volumes:
     - ./dags:/opt/airflow/dags
     - ./logs:/opt/airflow/logs

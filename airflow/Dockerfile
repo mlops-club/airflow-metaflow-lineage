@@ -15,4 +15,5 @@ USER airflow
 RUN pip install --no-cache-dir \
     "apache-airflow-providers-amazon>=9.9.0" \
     apache-airflow-providers-postgres \
+    apache-airflow-providers-openlineage \
     requests
