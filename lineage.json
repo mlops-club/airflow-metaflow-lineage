@@ -1,0 +1,338 @@
+{
+    "eventTime": "2025-07-03T05:23:26.482065+00:00",
+    "eventType": "COMPLETE",
+    "inputs": [],
+    "job": {
+        "facets": {
+            "jobType": {
+                "_producer": "https://github.com/apache/airflow/tree/providers-openlineage/2.3.0",
+                "_schemaURL": "https://openlineage.io/spec/facets/2-0-3/JobTypeJobFacet.json#/$defs/JobTypeJobFacet",
+                "integration": "AIRFLOW",
+                "jobType": "TASK",
+                "processingType": "BATCH"
+            },
+            "sql": {
+                "_producer": "https://github.com/apache/airflow/tree/providers-openlineage/2.3.0",
+                "_schemaURL": "https://openlineage.io/spec/facets/1-0-1/SQLJobFacet.json#/$defs/SQLJobFacet",
+                "query": "CREATE EXTERNAL TABLE IF NOT EXISTS nyc_taxi.staging_weather (\n    region_type STRING,\n    region_code BIGINT,\n    region_name STRING,\n    year BIGINT,\n    month BIGINT,\n    meteorological_element STRING,\n    day_01 DOUBLE, day_02 DOUBLE, day_03 DOUBLE, day_04 DOUBLE, day_05 DOUBLE,\n    day_06 DOUBLE, day_07 DOUBLE, day_08 DOUBLE, day_09 DOUBLE, day_10 DOUBLE,\n    day_11 DOUBLE, day_12 DOUBLE, day_13 DOUBLE, day_14 DOUBLE, day_15 DOUBLE,\n    day_16 DOUBLE, day_17 DOUBLE, day_18 DOUBLE, day_19 DOUBLE, day_20 DOUBLE,\n    day_21 DOUBLE, day_22 DOUBLE, day_23 DOUBLE, day_24 DOUBLE, day_25 DOUBLE,\n    day_26 DOUBLE, day_27 DOUBLE, day_28 DOUBLE, day_29 DOUBLE, day_30 DOUBLE,\n    day_31 DOUBLE\n)\nROW FORMAT SERDE 'org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe'\nWITH SERDEPROPERTIES (\n    'field.delim' = ',',\n    'serialization.null.format' = '-999.99'\n)\nSTORED AS TEXTFILE\nLOCATION 's3://airflow-metaflow-6721/staging/weather/'\nTBLPROPERTIES (\n    \"skip.header.line.count\"=\"0\"\n\n)"
+            }
+        },
+        "name": "ingest_weather_data.create_staging_table_if_not_exists",
+        "namespace": "default"
+    },
+    "outputs": [
+        {
+            "facets": {
+                "schema": {
+                    "_producer": "https://github.com/apache/airflow/tree/providers-openlineage/2.3.0",
+                    "_schemaURL": "https://openlineage.io/spec/facets/1-1-1/SchemaDatasetFacet.json#/$defs/SchemaDatasetFacet",
+                    "fields": [
+                        {
+                            "fields": [],
+                            "name": "region_type",
+                            "type": "string"
+                        },
+                        {
+                            "fields": [],
+                            "name": "region_code",
+                            "type": "bigint"
+                        },
+                        {
+                            "fields": [],
+                            "name": "region_name",
+                            "type": "string"
+                        },
+                        {
+                            "fields": [],
+                            "name": "year",
+                            "type": "bigint"
+                        },
+                        {
+                            "fields": [],
+                            "name": "month",
+                            "type": "bigint"
+                        },
+                        {
+                            "fields": [],
+                            "name": "meteorological_element",
+                            "type": "string"
+                        },
+                        {
+                            "fields": [],
+                            "name": "day_01",
+                            "type": "double"
+                        },
+                        {
+                            "fields": [],
+                            "name": "day_02",
+                            "type": "double"
+                        },
+                        {
+                            "fields": [],
+                            "name": "day_03",
+                            "type": "double"
+                        },
+                        {
+                            "fields": [],
+                            "name": "day_04",
+                            "type": "double"
+                        },
+                        {
+                            "fields": [],
+                            "name": "day_05",
+                            "type": "double"
+                        },
+                        {
+                            "fields": [],
+                            "name": "day_06",
+                            "type": "double"
+                        },
+                        {
+                            "fields": [],
+                            "name": "day_07",
+                            "type": "double"
+                        },
+                        {
+                            "fields": [],
+                            "name": "day_08",
+                            "type": "double"
+                        },
+                        {
+                            "fields": [],
+                            "name": "day_09",
+                            "type": "double"
+                        },
+                        {
+                            "fields": [],
+                            "name": "day_10",
+                            "type": "double"
+                        },
+                        {
+                            "fields": [],
+                            "name": "day_11",
+                            "type": "double"
+                        },
+                        {
+                            "fields": [],
+                            "name": "day_12",
+                            "type": "double"
+                        },
+                        {
+                            "fields": [],
+                            "name": "day_13",
+                            "type": "double"
+                        },
+                        {
+                            "fields": [],
+                            "name": "day_14",
+                            "type": "double"
+                        },
+                        {
+                            "fields": [],
+                            "name": "day_15",
+                            "type": "double"
+                        },
+                        {
+                            "fields": [],
+                            "name": "day_16",
+                            "type": "double"
+                        },
+                        {
+                            "fields": [],
+                            "name": "day_17",
+                            "type": "double"
+                        },
+                        {
+                            "fields": [],
+                            "name": "day_18",
+                            "type": "double"
+                        },
+                        {
+                            "fields": [],
+                            "name": "day_19",
+                            "type": "double"
+                        },
+                        {
+                            "fields": [],
+                            "name": "day_20",
+                            "type": "double"
+                        },
+                        {
+                            "fields": [],
+                            "name": "day_21",
+                            "type": "double"
+                        },
+                        {
+                            "fields": [],
+                            "name": "day_22",
+                            "type": "double"
+                        },
+                        {
+                            "fields": [],
+                            "name": "day_23",
+                            "type": "double"
+                        },
+                        {
+                            "fields": [],
+                            "name": "day_24",
+                            "type": "double"
+                        },
+                        {
+                            "fields": [],
+                            "name": "day_25",
+                            "type": "double"
+                        },
+                        {
+                            "fields": [],
+                            "name": "day_26",
+                            "type": "double"
+                        },
+                        {
+                            "fields": [],
+                            "name": "day_27",
+                            "type": "double"
+                        },
+                        {
+                            "fields": [],
+                            "name": "day_28",
+                            "type": "double"
+                        },
+                        {
+                            "fields": [],
+                            "name": "day_29",
+                            "type": "double"
+                        },
+                        {
+                            "fields": [],
+                            "name": "day_30",
+                            "type": "double"
+                        },
+                        {
+                            "fields": [],
+                            "name": "day_31",
+                            "type": "double"
+                        }
+                    ]
+                },
+                "symlinks": {
+                    "_producer": "https://github.com/apache/airflow/tree/providers-openlineage/2.3.0",
+                    "_schemaURL": "https://openlineage.io/spec/facets/1-0-1/SymlinksDatasetFacet.json#/$defs/SymlinksDatasetFacet",
+                    "identifiers": [
+                        {
+                            "name": "/staging/weather",
+                            "namespace": "s3://airflow-metaflow-6721",
+                            "type": "TABLE"
+                        }
+                    ]
+                }
+            },
+            "name": "AwsDataCatalog.nyc_taxi.staging_weather",
+            "namespace": "awsathena://athena.us-east-1.amazonaws.com"
+        },
+        {
+            "facets": {},
+            "name": "/athena_results/",
+            "namespace": "s3://airflow-metaflow-6721"
+        }
+    ],
+    "producer": "https://github.com/apache/airflow/tree/providers-openlineage/2.3.0",
+    "run": {
+        "facets": {
+            "airflow": {
+                "_producer": "https://github.com/apache/airflow/tree/providers-openlineage/2.3.0",
+                "_schemaURL": "https://openlineage.io/spec/2-0-2/OpenLineage.json#/$defs/RunFacet",
+                "dag": {
+                    "dag_id": "ingest_weather_data",
+                    "description": "Ingest NCEI weather data -> Iceberg in S3 + Glue Catalog",
+                    "fileloc": "/opt/airflow/dags/weather/dag.py",
+                    "owner": "airflow",
+                    "owner_links": {},
+                    "schedule_interval": "86400.0 seconds",
+                    "tags": "[]",
+                    "timetable": {
+                        "delta": 86400.0
+                    }
+                },
+                "dagRun": {
+                    "conf": {},
+                    "dag_id": "ingest_weather_data",
+                    "data_interval_end": "2025-07-03T05:22:48.548547+00:00",
+                    "data_interval_start": "2025-07-02T05:22:48.548547+00:00",
+                    "external_trigger": true,
+                    "logical_date": "2025-07-03T05:22:48.548547+00:00",
+                    "run_id": "manual__2025-07-03T05:22:48.548547+00:00",
+                    "run_type": "manual",
+                    "start_date": "2025-07-03T05:22:49.542568+00:00"
+                },
+                "task": {
+                    "deferrable": false,
+                    "depends_on_past": false,
+                    "downstream_task_ids": "['merge_upsert_staging_into_raw_weather']",
+                    "executor_config": {},
+                    "ignore_first_depends_on_past": true,
+                    "inlets": "[]",
+                    "is_setup": false,
+                    "is_teardown": false,
+                    "mapped": false,
+                    "multiple_outputs": false,
+                    "operator_class": "AthenaOperator",
+                    "operator_class_path": "airflow.providers.amazon.aws.operators.athena.AthenaOperator",
+                    "outlets": "[]",
+                    "owner": "airflow",
+                    "priority_weight": 1,
+                    "queue": "default",
+                    "retries": 0,
+                    "retry_exponential_backoff": false,
+                    "task_id": "create_staging_table_if_not_exists",
+                    "trigger_rule": "all_success",
+                    "upstream_task_ids": "['download_and_stage_data']",
+                    "wait_for_downstream": false,
+                    "wait_for_past_depends_before_skipping": false
+                },
+                "taskInstance": {
+                    "duration": 32.336501,
+                    "log_url": "http://localhost:8080/dags/ingest_weather_data/grid?dag_run_id=manual__2025-07-03T05%3A22%3A48.548547%2B00%3A00&task_id=create_staging_table_if_not_exists&base_date=2025-07-03T05%3A22%3A48.548547%2B0000&tab=logs",
+                    "pool": "default_pool",
+                    "queued_dttm": "2025-07-03T05:22:53.589637+00:00",
+                    "try_number": 1
+                },
+                "taskUuid": "0197cebc-ca64-785d-9dff-ed0ea0ae1b24"
+            },
+            "externalQuery": {
+                "_producer": "https://github.com/apache/airflow/tree/providers-openlineage/2.3.0",
+                "_schemaURL": "https://openlineage.io/spec/facets/1-0-2/ExternalQueryRunFacet.json#/$defs/ExternalQueryRunFacet",
+                "externalQueryId": "a0dc1267-8f05-4175-b85a-b3b623a5ae87",
+                "source": "awsathena"
+            },
+            "parent": {
+                "_producer": "https://github.com/apache/airflow/tree/providers-openlineage/2.3.0",
+                "_schemaURL": "https://openlineage.io/spec/facets/1-1-0/ParentRunFacet.json#/$defs/ParentRunFacet",
+                "job": {
+                    "name": "ingest_weather_data",
+                    "namespace": "default"
+                },
+                "root": {
+                    "job": {
+                        "name": "ingest_weather_data",
+                        "namespace": "default"
+                    },
+                    "run": {
+                        "runId": "0197cebc-ca64-7733-a2a3-05679ccd4ee3"
+                    }
+                },
+                "run": {
+                    "runId": "0197cebc-ca64-7733-a2a3-05679ccd4ee3"
+                }
+            },
+            "processing_engine": {
+                "_producer": "https://github.com/apache/airflow/tree/providers-openlineage/2.3.0",
+                "_schemaURL": "https://openlineage.io/spec/facets/1-1-1/ProcessingEngineRunFacet.json#/$defs/ProcessingEngineRunFacet",
+                "name": "Airflow",
+                "openlineageAdapterVersion": "2.3.0",
+                "version": "2.11.0"
+            }
+        },
+        "runId": "0197cebc-ca64-785d-9dff-ed0ea0ae1b24"
+    },
+    "schemaURL": "https://openlineage.io/spec/2-0-2/OpenLineage.json#/$defs/RunEvent"
+}

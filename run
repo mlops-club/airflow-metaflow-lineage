@@ -20,6 +20,8 @@ export GLUE_DATABASE="nyc_taxi"
 export PULUMI_PROJECT_NAME="airflow-metaflow-lineage"
 export PULUMI_STACK_NAME="dev"
 
+export DATAHUB_MAPPED_GMS_PORT=8091
+
 # so as not to conflict with one of the datahub services on 8080
 # export AIRFLOW__API__PORT=8081
 export AIRFLOW__WEBSERVER__WEB_SERVER_PORT=9090

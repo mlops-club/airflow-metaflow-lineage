@@ -19,7 +19,7 @@ if ! airflow users list 2>/dev/null | grep -q airflow; then
   airflow variables set datalake-glue-database "${GLUE_DATABASE}"
 
   echo "Creating datahub connection..."
-  airflow connections add --conn-type 'datahub-rest' 'datahub_rest_default' --conn-host 'http://host.docker.internal:8080' || echo "Connection already exists"
+  airflow connections add --conn-type 'datahub-rest' 'datahub_rest_default' --conn-host "http://host.docker.internal:${DATAHUB_MAPPED_GMS_PORT}" || echo "Connection already exists"
 
   echo "Creating admin user..."
   airflow users create \

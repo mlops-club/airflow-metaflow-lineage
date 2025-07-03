@@ -13,6 +13,7 @@ RUN pip install \
     apache-airflow-providers-postgres \
     apache-airflow-providers-openlineage \
     acryl-datahub-airflow-plugin[plugin-v2] \
+    typing-extensions==4.8.0 \
     requests
     
 # Copy entrypoint script
