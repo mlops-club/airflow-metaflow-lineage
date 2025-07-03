@@ -18,9 +18,6 @@ if ! airflow users list 2>/dev/null | grep -q airflow; then
   airflow variables set datalake-s3-bucket "${S3_DATA_LAKE_BUCKET_NAME}"
   airflow variables set datalake-glue-database "${GLUE_DATABASE}"
 
-  echo "Creating datahub connection..."
-  airflow connections add --conn-type 'generic' 'datahub_rest_default' --conn-host 'http://host.docker.internal:8080' || echo "Connection already exists"
-
   echo "Creating admin user..."
   airflow users create \
     --role Admin \
@@ -34,6 +31,11 @@ if ! airflow users list 2>/dev/null | grep -q airflow; then
 else
   echo "Airflow already initialized, skipping..."
 fi
+
+# echo "Creating datahub connection..."
+# airflow connections add --conn-type 'datahub-rest' 'datahub_rest_default' --conn-host 'http://host.docker.internal:8091' || echo "Connection already exists"
+
+# echo "OpenLineage is configured to send lineage data to DataHub via environment variables"
 
 # Execute the provided command
 exec "$@"

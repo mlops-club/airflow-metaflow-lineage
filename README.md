@@ -168,3 +168,44 @@ Resources
 - [Airflow-DataHub integration docs](https://docs.datahub.com/docs/lineage/airflow)
 - [Datahub Docker Quickstart](https://docs.datahub.com/docs/quickstart)
 
+
+
+```shell
+# Running Datahub gives this warning in airflow logs
+[2025-07-02, 11:01:20 UTC] {logging_mixin.py:190} INFO - Uploaded prcp-2025-04.csv to s3://airflow-metaflow-6721/staging/weather/prcp-2025-04.csv
+[2025-07-02, 11:01:20 UTC] {logging_mixin.py:190} INFO - Downloading https://www.ncei.noaa.gov/pub/data/daily-grids/v1-0-0/averages/2025/tavg-202504-cty-scaled.csv ...
+[2025-07-02, 11:01:23 UTC] {hook.py:208} WARNING - Data lineage tracking is disabled. Register a hook lineage reader to start tracking hook lineage.
+[2025-07-02, 11:01:23 UTC] {logging_mixin.py:190} INFO - Uploaded tavg-2025-04.csv to s3://airflow-metaflow-6721/staging/weather/tavg-2025-04.csv
+[2025-07-02, 11:01:23 UTC] {logging_mixin.py:190} INFO - Downloading https://www.ncei.noaa.gov/pub/data/daily-grids/v1-0-0/averages/2025/tmin-202504-cty-scaled.csv ...
+[2025-07-02, 11:01:27 UTC] {hook.py:208} WARNING - Data lineage tracking is disabled. Register a hook lineage reader to start tracking hook lineage.
+```
+
+```shell
+▼ Log message source details
+*** Found local files:
+***   * /opt/airflow/logs/dag_id=ingest_weather_data/run_id=manual__2025-07-02T13:08:26.031029+00:00/task_id=download_and_stage_data/attempt=1.log
+*** !!!! Please make sure that all your Airflow components (e.g. schedulers, webservers, workers and triggerer) have the same 'secret_key' configured in 'webserver' section and time is synchronized on all your machines (for example with ntpd)
+See more at https://airflow.apache.org/docs/apache-airflow/stable/configurations-ref.html#secret-key
+*** Could not read served logs: 403 Client Error: FORBIDDEN for url: http://3ab44e4f8f77:8793/log/dag_id=ingest_weather_data/run_id=manual__2025-07-02T13:08:26.031029+00:00/task_id=download_and_stage_data/attempt=1.log
+ ▲▲▲ Log group end
+[2025-07-02, 13:08:27 UTC] {local_task_job_runner.py:123} ▶ Pre task execution logs
+```
+
+
+```shell
+[2025-07-02, 14:17:56 UTC] {local_task_job_runner.py:123} ▼ Pre task execution logs
+[2025-07-02, 14:17:56 UTC] {taskinstance.py:2631} INFO - Dependencies all met for dep_context=non-requeueable deps ti=<TaskInstance: ingest_weather_data.download_and_stage_data manual__2025-07-02T14:17:53.252208+00:00 [queued]>
+[2025-07-02, 14:17:56 UTC] {taskinstance.py:2631} INFO - Dependencies all met for dep_context=requeueable deps ti=<TaskInstance: ingest_weather_data.download_and_stage_data manual__2025-07-02T14:17:53.252208+00:00 [queued]>
+[2025-07-02, 14:17:56 UTC] {taskinstance.py:2884} INFO - Starting attempt 1 of 1
+[2025-07-02, 14:17:56 UTC] {taskinstance.py:2907} INFO - Executing <Task(_PythonDecoratedOperator): download_and_stage_data> on 2025-07-02 14:17:53.252208+00:00
+[2025-07-02, 14:17:56 UTC] {logging_mixin.py:190} WARNING - /home/airflow/.local/lib/python3.12/site-packages/airflow/task/task_runner/standard_task_runner.py:70 DeprecationWarning: This process (pid=192) is multi-threaded, use of fork() may lead to deadlocks in the child.
+[2025-07-02, 14:17:56 UTC] {standard_task_runner.py:104} INFO - Running: ['airflow', 'tasks', 'run', 'ingest_weather_data', 'download_and_stage_data', 'manual__2025-07-02T14:17:53.252208+00:00', '--job-id', '2', '--raw', '--subdir', 'DAGS_FOLDER/weather/dag.py', '--cfg-path', '/tmp/tmpib08i8lu']
+[2025-07-02, 14:17:56 UTC] {standard_task_runner.py:72} INFO - Started process 193 to run task
+[2025-07-02, 14:17:56 UTC] {standard_task_runner.py:105} INFO - Job 2: Subtask download_and_stage_data
+[2025-07-02, 14:17:56 UTC] {task_command.py:467} INFO - Running <TaskInstance: ingest_weather_data.download_and_stage_data manual__2025-07-02T14:17:53.252208+00:00 [running]> on host f1f91788c2cf
+[2025-07-02, 14:17:56 UTC] {taskinstance.py:3157} INFO - Exporting env vars: AIRFLOW_CTX_DAG_OWNER='airflow' AIRFLOW_CTX_DAG_ID='ingest_weather_data' AIRFLOW_CTX_TASK_ID='download_and_stage_data' AIRFLOW_CTX_EXECUTION_DATE='2025-07-02T14:17:53.252208+00:00' AIRFLOW_CTX_TRY_NUMBER='1' AIRFLOW_CTX_DAG_RUN_ID='manual__2025-07-02T14:17:53.252208+00:00'
+[2025-07-02, 14:17:56 UTC] {logging_mixin.py:190} WARNING - /home/airflow/.local/lib/python3.12/site-packages/airflow/providers/openlineage/plugins/listener.py:525 DeprecationWarning: This process (pid=193) is multi-threaded, use of fork() may lead to deadlocks in the child.
+[2025-07-02, 14:17:57 UTC] {client.py:121} INFO - OpenLineageClient will use `http` transport
+[2025-07-02, 14:17:57 UTC] {adapter.py:174} WARNING - Failed to emit OpenLineage `START` event of id `0197cb80-4f64-7969-805d-a94456dce28e` with the following exception: `404 Client Error: Not Found for url: http://host.docker.internal:8080/api/v1/lineage`
+[2025-07-02, 14:17:57 UTC] {taskinstance.py:740} ▲▲▲ Log group end
+```

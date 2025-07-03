@@ -11,8 +11,18 @@ RUN chmod +x /entrypoint.sh
 # Switch to airflow user
 USER airflow
 
-# Install additional providers
+
+# Install core providers
 RUN pip install --no-cache-dir \
+    "typing_extensions==4.8.0" \
     "apache-airflow-providers-amazon>=9.9.0" \
-    apache-airflow-providers-postgres \
-    requests
+    "apache-airflow-providers-postgres" \
+    # "acryl-datahub-airflow-plugin[plugin-v2]" \
+    # "apache-airflow-providers-openlineage" \
+    "requests"
+
+# Install OpenLineage provider for sending lineage data to DataHub
+RUN pip install --no-cache-dir "apache-airflow-providers-openlineage"
+
+# Install DataHub plugin
+# RUN pip install --no-cache-dir "acryl-datahub-airflow-plugin[plugin-v2]"
