@@ -12,9 +12,11 @@ RUN chmod +x /entrypoint.sh
 USER airflow
 
 
+RUN pip install \
+    typing-extensions==4.8.0
+
 # Install core providers
 RUN pip install --no-cache-dir \
-    "typing_extensions==4.8.0" \
     "apache-airflow-providers-amazon>=9.9.0" \
     "apache-airflow-providers-postgres" \
     # "acryl-datahub-airflow-plugin[plugin-v2]" \
