@@ -37,15 +37,6 @@ MEASUREMENT_NAMES = {
 }
 
 
-def make_download_weather_url(year: int, month: int, measurement: TMeasurementTypes) -> str:
-    """
-    Create download URL for weather data.
-    
-    Format: https://www.ncei.noaa.gov/pub/data/daily-grids/v1-0-0/averages/yyyy/{measurement}-yyyymm-cty-scaled.csv
-    """
-    return f"https://www.ncei.noaa.gov/pub/data/daily-grids/v1-0-0/averages/{year}/{measurement}-{year}{month:02d}-cty-scaled.csv"
-
-
 
 @dag(
     dag_id="ingest_weather_data",
@@ -78,23 +69,67 @@ def ingest_weather_data():
         >> merge_upsert_staging_into_raw_weather
     )
 
+def make_download_weather_url(year: int, month: int, measurement: TMeasurementTypes) -> str:
+    return f"https://www.ncei.noaa.gov/pub/data/daily-grids/v1-0-0/averages/{year}/{measurement}-{year}{month:02d}-cty-scaled.csv"
+
+def weather_file_already_exists(s3: S3Hook, year: int, month: int, measurement: TMeasurementTypes) -> bool:
+    """Check if weather data file for a given year-month-measurement already exists in S3 staging"""
+    file_name = f"{measurement}-{year}-{month:02d}.csv"
+    s3_key = f"{STAGING_PREFIX}/{file_name}"
+    
+    try:
+        return s3.check_for_key(key=s3_key, bucket_name=S3_DATA_LAKE_BUCKET)
+    except Exception as e:
+        print(f"Error checking if {s3_key} exists: {e}")
+        return False
+
+
+def download_and_stage_weather_file_if_not_exists(s3: S3Hook, year: int, month: int, measurement: TMeasurementTypes) -> bool:
+    """Download and stage weather data file if it doesn't exist. Returns True if downloaded."""
+    if weather_file_already_exists(s3, year, month, measurement):
+        file_name = f"{measurement}-{year}-{month:02d}.csv"
+        print(f"File {file_name} already exists in S3, skipping download")
+        return False
+    
+    url = make_download_weather_url(year, month, measurement)
+    file_name = f"{measurement}-{year}-{month:02d}.csv"
+    s3_key = f"{STAGING_PREFIX}/{file_name}"
+    
+    print(f"Downloading {url} ...")
+    
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        
+        # Save directly to S3
+        s3.load_bytes(
+            response.content,
+            key=s3_key,
+            bucket_name=S3_DATA_LAKE_BUCKET,
+            replace=True,
+        )
+        print(f"Uploaded {file_name} to s3://{S3_DATA_LAKE_BUCKET}/{s3_key}")
+        return True
+        
+    except requests.exceptions.RequestException as e:
+        print(f"Failed to download {file_name}: {e}")
+        return False
+
 
 @task
 def download_and_stage_data() -> None:
     """Download last N months of NOAA weather data and upload to S3 staging"""
     s3 = S3Hook(aws_conn_id="aws_default", region_name=AWS_REGION)
 
-    print(f"Starting download of {N_MONTHS} months of weather data...")
+    print(f"Starting idempotent download of {N_MONTHS} months of weather data...")
 
-    # Clear out the staging folder in S3 to avoid reprocessing old files
-    old_keys = s3.list_keys(bucket_name=S3_DATA_LAKE_BUCKET, prefix=STAGING_PREFIX)
-    if old_keys:
-        s3.delete_objects(bucket=S3_DATA_LAKE_BUCKET, keys=old_keys)
-
-    # Weather data is typically available with some delay, let's try 2 months back
-    weather_upload_delay_months = 3 # 2
+    # Weather data is typically available with some delay, let's try 3 months back
+    weather_upload_delay_months = 3
     today = datetime.now().date()
     most_recently_published_month = today - relativedelta(months=weather_upload_delay_months)
+
+    files_downloaded = 0
+    files_skipped = 0
 
     for i in range(N_MONTHS):
         target_date = most_recently_published_month - relativedelta(months=i)
@@ -102,22 +137,12 @@ def download_and_stage_data() -> None:
         month = target_date.month
 
         for measurement in MEASUREMENT_TYPES:
-            url = make_download_weather_url(year, month, measurement)
-            file_name = f"{measurement}-{year}-{month:02d}.csv"
-
-            print(f"Downloading {url} ...")
-            response = requests.get(url)
-            response.raise_for_status()
-
-            # Save directly to S3
-            s3_key = f"{STAGING_PREFIX}/{file_name}"
-            s3.load_bytes(
-                response.content,
-                key=s3_key,
-                bucket_name=S3_DATA_LAKE_BUCKET,
-                replace=True,
-            )
-            print(f"Uploaded {file_name} to s3://{S3_DATA_LAKE_BUCKET}/{s3_key}")
+            if download_and_stage_weather_file_if_not_exists(s3, year, month, measurement):
+                files_downloaded += 1
+            else:
+                files_skipped += 1
+    
+    print(f"Download summary: {files_downloaded} files downloaded, {files_skipped} files skipped")
 
 
 def make_athena_query_operator(
