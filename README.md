@@ -186,3 +186,16 @@ START Flow (root)
    COMPLETE end
 COMPLETE Flow
 ```
+
+1. log the start and complete events
+   1. at the flow level (in the decorator)
+   2. at the step level (in the decorator)
+   3. for sql queries (in `execute_query`)
+2. correlate the child jobs with their parent via the parent facet
+   1. also set the root facet since we're going 3 layers deep
+   2. to do this, you will need to use the
+      decorator and singleton :D
+3. make the namespace the flow name `default` (this may be set via an env var, if that's the case just don't provide it)
+4. add whatever other metadata you can find, e.g. code source
+   1. e.g. `inspect.source(fn)` gives the code for a function
+   2. also the `codeLocation` source which has git info

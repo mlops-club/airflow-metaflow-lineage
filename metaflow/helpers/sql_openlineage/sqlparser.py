@@ -13,7 +13,15 @@ from openlineage.client.facet_v2 import (
     sql_job
 )
 from openlineage.common.sql import DbTableMeta, SqlMeta, parse
-
+from openlineage.client.facet_v2 import (
+    nominal_time_run,
+    processing_engine_run,
+    schema_dataset,
+    sql_job,
+)
+from openlineage.client.serde import Serde
+from openlineage.client.uuid import generate_new_uuid
+from datetime import datetime, timezone
 
 # Type aliases to replace Airflow-specific types
 TablesHierarchy = Dict[Optional[str], Dict[Optional[str], List[str]]]
@@ -58,7 +66,14 @@ class LineageInfo:
         outputs: Optional[List[Dataset]] = None
     ):
         self.job_facets = job_facets or {}
-        self.run_facets = run_facets or {}
+        self.run_facets = run_facets or {
+            "nominalTime": nominal_time_run.NominalTimeRunFacet(
+                nominalStartTime=datetime.now(timezone.utc).isoformat()
+            ),
+            "processing_engine": processing_engine_run.ProcessingEngineRunFacet(
+                name="sagemaker", version="1.0.0"
+            )
+        }
         self.inputs = inputs or []
         self.outputs = outputs or []
 

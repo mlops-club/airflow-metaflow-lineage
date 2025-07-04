@@ -7,6 +7,11 @@ import boto3
 from typing import Optional, Dict, Any
 from jinja2 import DebugUndefined, Template
 from rich import print
+from .sql_openlineage.sqlparser import LineageInfo
+from .openlineage import _create_openlineage_client
+from openlineage.client.run import RunEvent, RunState, Run, Job
+from openlineage.client.uuid import generate_new_uuid
+from datetime import datetime
 
 def _is_valid_snake_case_identifier(name: str) -> bool:
     """
@@ -104,6 +109,9 @@ def query_pandas_from_athena(
         print(f"Output datasets: {[ds.name for ds in lineage_info.outputs]}")
         print("=" * 50)
         
+        # Emit OpenLineage COMPLETE event
+        emit_openlineage_complete_event(lineage_info, job_name)
+        
     except Exception as e:
         print(f"Warning: Failed to extract lineage for '{job_name}': {e}")
     
@@ -178,17 +186,15 @@ def execute_query(
                 output_location=s3_output_location
             )
             
-            # Create Athena client
-            athena_client = boto3.client('athena', region_name=config.region_name)
-            
             # Extract lineage information
             lineage_info = extract_athena_lineage(
                 task_name=job_name,
                 query=sql_query,
                 config=config,
-                athena_client=athena_client,
                 query_execution_id=query_execution_id
             )
+
+            
             
             print(f"=== Lineage Information for '{job_name}' ===")
             print(f"Job facets: {lineage_info.job_facets}")
@@ -196,6 +202,9 @@ def execute_query(
             print(f"Input datasets: {[ds.name for ds in lineage_info.inputs]}")
             print(f"Output datasets: {[ds.name for ds in lineage_info.outputs]}")
             print("=" * 50)
+            
+            # Emit OpenLineage COMPLETE event
+            emit_openlineage_complete_event(lineage_info, job_name)
             
         except Exception as e:
             print(f"Warning: Failed to extract lineage for '{job_name}': {e}")
@@ -227,3 +236,62 @@ def substitute_map_into_string(string: str, values: dict[str, Any]) -> str:
     """
     template = Template(string, undefined=DebugUndefined)
     return template.render(values)
+
+def emit_openlineage_complete_event(lineage_info: LineageInfo, job_name: str, namespace: str = "metaflow") -> None:
+    """
+    Emit an OpenLineage COMPLETE event with lineage information.
+    
+    Args:
+        lineage_info: LineageInfo object containing job facets, run facets, inputs, and outputs
+        job_name: Name of the job/task
+        namespace: OpenLineage namespace (default: "metaflow")
+    """
+    client = _create_openlineage_client()
+    
+    # Create job and run objects
+    job = Job(
+        namespace=namespace,
+        name=job_name,
+        facets=lineage_info.job_facets
+    )
+    
+    run_id = str(generate_new_uuid())
+    run = Run(
+        runId=run_id,
+        facets=lineage_info.run_facets
+    )
+    
+    # Convert datasets to the correct type for RunEvent
+    from openlineage.client.run import Dataset as RunDataset
+    
+    # Convert input datasets
+    run_inputs = []
+    for dataset in lineage_info.inputs:
+        run_inputs.append(RunDataset(
+            namespace=dataset.namespace,
+            name=dataset.name,
+            facets=dataset.facets or {}
+        ))
+    
+    # Convert output datasets
+    run_outputs = []
+    for dataset in lineage_info.outputs:
+        run_outputs.append(RunDataset(
+            namespace=dataset.namespace,
+            name=dataset.name,
+            facets=dataset.facets or {}
+        ))
+    
+    # Create and emit the COMPLETE event with input and output datasets
+    event = RunEvent(
+        eventType=RunState.COMPLETE,
+        eventTime=datetime.utcnow().isoformat(),
+        run=run,
+        job=job,
+        inputs=run_inputs if run_inputs else None,
+        outputs=run_outputs if run_outputs else None,
+        producer="https://github.com/OpenLineage/OpenLineage/tree/1.34.0/integration/sagemaker"
+    )
+    
+    client.emit(event)
+    print(f"✅ Emitted OpenLineage COMPLETE event for job '{job_name}' with {len(lineage_info.inputs)} inputs and {len(lineage_info.outputs)} outputs")

@@ -8,7 +8,7 @@ But with this code, the flow-level job is created in the start
 step... so how do we account for this?
 """
 import functools
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Callable
 from metaflow import current
 from openlineage.client import OpenLineageClient
@@ -140,7 +140,7 @@ def _emit_run_event(client: OpenLineageClient, event_type: RunState, job: Job, r
     """Emit an OpenLineage run event."""
     event = RunEvent(
         eventType=event_type,
-        eventTime=datetime.utcnow().isoformat(),
+        eventTime=datetime.now(timezone.utc).isoformat(),
         run=run,
         job=job,
         producer="metaflow-openlineage-extension"
