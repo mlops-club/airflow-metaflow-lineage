@@ -2,9 +2,28 @@
 
 import awswrangler as wr
 import pandas as pd
+import re
 from typing import Optional, Dict, Any
-from typing import Any
 from jinja2 import DebugUndefined, Template
+
+
+def _is_valid_snake_case_identifier(name: str) -> bool:
+    """
+    Validate that a string is a valid lower snake case identifier.
+    
+    Args:
+        name: String to validate
+        
+    Returns:
+        True if valid, False otherwise
+    """
+    if not name:
+        return False
+    
+    # Check if it matches snake_case pattern: lowercase letters, numbers, underscores
+    # Must start with a letter or underscore, no consecutive underscores, no trailing underscore
+    pattern = r'^[a-z_][a-z0-9_]*[a-z0-9]$|^[a-z]$'
+    return bool(re.match(pattern, name)) and '__' not in name
 
 
 
@@ -12,6 +31,7 @@ def query_pandas_from_athena(
     sql_query: str,
     glue_database: str,
     datalake_s3_bucket: str,
+    job_name: str,
     s3_output_location: Optional[str] = None,
     ctx: Optional[Dict[str, Any]] = None,
 ) -> pd.DataFrame:
@@ -23,13 +43,17 @@ def query_pandas_from_athena(
         sql_query: SQL query string (can contain Jinja2 template variables)
         glue_database: AWS Glue database name
         datalake_s3_bucket: S3 bucket for query results
-        region: AWS region
+        job_name: Job name identifier (must be valid lower snake case identifier)
         s3_output_location: S3 location for query results (optional)
         ctx: Optional context dictionary for Jinja2 template substitution
 
     Returns:
         DataFrame with query results
     """
+    # Validate job_name format
+    if not _is_valid_snake_case_identifier(job_name):
+        raise ValueError(f"job_name must be a valid lower snake case identifier. Got: {job_name}")
+    
     # Apply Jinja2 templating if context is provided
     if ctx is not None:
         sql_query = substitute_map_into_string(sql_query, ctx)
@@ -43,7 +67,7 @@ def query_pandas_from_athena(
         database=glue_database,
         s3_output=s3_output_location,
     )
-    print(f"Query executed successfully. Returned {len(df)} rows.")
+    print(f"Query '{job_name}' executed successfully. Returned {len(df)} rows.")
     return df
 
 
@@ -51,6 +75,7 @@ def execute_query(
     sql_query: str,
     glue_database: str,
     datalake_s3_bucket: str,
+    job_name: str,
     s3_output_location: Optional[str] = None,
     ctx: Optional[Dict[str, Any]] = None,
 ) -> str:
@@ -62,13 +87,17 @@ def execute_query(
         sql_query: SQL query string (can contain Jinja2 template variables)
         glue_database: AWS Glue database name
         datalake_s3_bucket: S3 bucket for query results
-        region: AWS region
+        job_name: Job name identifier (must be valid lower snake case identifier)
         s3_output_location: S3 location for query results (optional)
         ctx: Optional context dictionary for Jinja2 template substitution
 
     Returns:
         Query execution ID
     """
+    # Validate job_name format
+    if not _is_valid_snake_case_identifier(job_name):
+        raise ValueError(f"job_name must be a valid lower snake case identifier. Got: {job_name}")
+    
     # Apply Jinja2 templating if context is provided
     if ctx is not None:
         sql_query = substitute_map_into_string(sql_query, ctx)
@@ -94,21 +123,21 @@ def execute_query(
 
     # Check if query succeeded
     if query_state == "SUCCEEDED":
-        print(f"DDL/DML query executed successfully. Query ID: {query_execution_id}")
+        print(f"DDL/DML query '{job_name}' executed successfully. Query ID: {query_execution_id}")
         return query_execution_id
     elif query_state == "FAILED":
         failure_reason = query_response["Status"].get(
             "StateChangeReason", "Unknown error"
         )
         raise RuntimeError(
-            f"Query failed. Query ID: {query_execution_id}. Reason: {failure_reason}"
+            f"Query '{job_name}' failed. Query ID: {query_execution_id}. Reason: {failure_reason}"
         )
     elif query_state == "CANCELLED":
-        raise RuntimeError(f"Query was cancelled. Query ID: {query_execution_id}")
+        raise RuntimeError(f"Query '{job_name}' was cancelled. Query ID: {query_execution_id}")
     else:
         # This shouldn't happen with wait=True, but just in case
         raise RuntimeError(
-            f"Query finished with unexpected state: {query_state}. Query ID: {query_execution_id}"
+            f"Query '{job_name}' finished with unexpected state: {query_state}. Query ID: {query_execution_id}"
         )
 
 def substitute_map_into_string(string: str, values: dict[str, Any]) -> str:

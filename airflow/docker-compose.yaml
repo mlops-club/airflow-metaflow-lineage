@@ -11,6 +11,7 @@ x-airflow-common:
     AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/dags
     AIRFLOW__CORE__TEST_CONNECTION: Enabled
     AIRFLOW__WEBSERVER__WEB_SERVER_PORT: ${AIRFLOW__WEBSERVER__WEB_SERVER_PORT}
+    AIRFLOW__CORE__LOAD_DEFAULT_CONNECTIONS: "false"  # remove clutter of default connections
     # for the taxi and weather DAGs
     AWS_PROFILE: ${AWS_PROFILE}
     AWS_REGION: ${AWS_REGION}

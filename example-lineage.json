@@ -1,0 +1,39 @@
+{
+    "producer": "https://github.com/OpenLineage/OpenLineage/tree/1.34.0/integration/sagemaker",
+    "eventTime": "2025-07-03T16:01:27.040608+00:00",
+    "eventType": "START",
+    "run": {
+        "runId": "0197d105-7c00-7ffd-b2c4-cdc7d0e3e5c4",
+        "facets": {
+            "processing_engine": {
+                "_producer": "https://github.com/OpenLineage/OpenLineage/tree/1.34.0/integration/sagemaker",
+                "_schemaURL": "https://openlineage.io/spec/facets/1-1-1/ProcessingEngineRunFacet.json#/$defs/ProcessingEngineRunFacet",
+                "name": "sagemaker",
+                "version": "1.0.0"
+            },
+            "nominalTime": {
+                "_producer": "https://github.com/OpenLineage/OpenLineage/tree/1.34.0/client/python",
+                "_schemaURL": "https://openlineage.io/spec/facets/1-0-1/NominalTimeRunFacet.json#/$defs/NominalTimeRunFacet",
+                "nominalStartTime": "2025-07-03T16:01:27.040530+00:00"
+            }
+        }
+    },
+    "inputs": [
+        {
+            "name": "raw_taxi_files.yellow",
+            "namespace": "test_pipeline"
+        }
+    ],
+    "job": {
+        "namespace": "test_pipeline",
+        "name": "test_pipeline.upsert_yellow_taxi_data",
+        "facets": {}
+    },
+    "outputs": [
+        {
+            "name": "nyc_taxi.raw_yellow",
+            "namespace": "test_pipeline"
+        }
+    ],
+    "schemaURL": "https://openlineage.io/spec/2-0-2/OpenLineage.json#/$defs/RunEvent"
+}

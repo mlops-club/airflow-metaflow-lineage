@@ -64,6 +64,7 @@ class ForecastNumberOfYellowTaxiRides(FlowSpec):
             sql_query=create_actuals_table_sql,
             glue_database=self.cfg.glue_database,
             datalake_s3_bucket=self.cfg.datalake_s3_bucket,
+            job_name="create_actuals_table",
             ctx={
                 "glue_database": self.cfg.glue_database,
                 "datalake_s3_bucket": self.cfg.datalake_s3_bucket,
@@ -78,6 +79,7 @@ class ForecastNumberOfYellowTaxiRides(FlowSpec):
             sql_query=(SQL_DIR / "compute_actuals.sql").read_text(),
             glue_database=self.cfg.glue_database,
             datalake_s3_bucket=self.cfg.datalake_s3_bucket,
+            job_name="compute_actuals",
             ctx={
                 "glue_database": self.cfg.glue_database,
                 "datalake_s3_bucket": self.cfg.datalake_s3_bucket,
@@ -123,6 +125,7 @@ class ForecastNumberOfYellowTaxiRides(FlowSpec):
             sql_query=query,
             glue_database=self.cfg.glue_database,
             datalake_s3_bucket=self.cfg.datalake_s3_bucket,
+            job_name="create_forecast_table",
             ctx={
                 "glue_database": self.cfg.glue_database,
                 "datalake_s3_bucket": self.cfg.datalake_s3_bucket,
@@ -139,6 +142,7 @@ class ForecastNumberOfYellowTaxiRides(FlowSpec):
             sql_query=(SQL_DIR / "prepare_training_data.sql").read_text(),
             glue_database=self.cfg.glue_database,
             datalake_s3_bucket=self.cfg.datalake_s3_bucket,
+            job_name="prepare_training_data",
             ctx={
                 "glue_database": self.cfg.glue_database,
                 "datalake_s3_bucket": self.cfg.datalake_s3_bucket,

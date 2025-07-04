@@ -10,10 +10,17 @@ import pulumi_aws as aws
 from pulumi import automation as auto
 import os
 
+from pathlib import Path
+THIS_DIR = Path(__file__).parent
+
 # disable encryption for Pulumi since the state and secrets will only
 # ever exist locally and not be committed; aka lax encryption is okay because
 # this is not meant for collaboration between multiple team members
 os.environ["PULUMI_CONFIG_PASSPHRASE"] = ""
+
+PULUMI_STATE_DIR = THIS_DIR / ".pulumi"
+os.environ["PULUMI_BACKEND_URL"] = f"file://{PULUMI_STATE_DIR}"
+PULUMI_STATE_DIR.mkdir(exist_ok=True)
 
 S3_BUCKET_NAME = os.environ["S3_DATA_LAKE_BUCKET_NAME"]
 GLUE_DATABASE_NAME = os.environ["GLUE_DATABASE"]
@@ -46,7 +53,7 @@ stack.workspace.install_plugin("aws", "v5.0.0")
 
 if STACK_ACTION == "destroy":
     print("Destroying stack...")
-    stack.destroy()
+    stack.destroy(on_output=print)
     print("Stack destroyed successfully!")
 else:
     print("Creating/updating stack...")

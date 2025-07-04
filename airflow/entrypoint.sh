@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -ex
 
 # Wait for postgres to be ready
 echo "Waiting for PostgreSQL to be ready..."
@@ -9,7 +9,7 @@ done
 echo "PostgreSQL is ready!"
 
 # Initialize the database if it hasn't been done yet
-if ! airflow users list 2>/dev/null | grep -q airflow; then
+# if ! airflow users list 2>/dev/null | grep -q airflow; then
   echo "Initializing Airflow database..."
   airflow db init
   
@@ -19,7 +19,9 @@ if ! airflow users list 2>/dev/null | grep -q airflow; then
   airflow variables set datalake-glue-database "${GLUE_DATABASE}"
 
   echo "Creating datahub connection..."
-  airflow connections add --conn-type 'datahub-rest' 'datahub_rest_default' --conn-host "http://host.docker.internal:${DATAHUB_MAPPED_GMS_PORT}" || echo "Connection already exists"
+
+  # datahub says to use this command here: https://docs.datahub.com/docs/lineage/airflow#configuration
+  airflow connections add --conn-type 'datahub_rest' 'datahub_rest_default' --conn-host "http://host.docker.internal:${DATAHUB_MAPPED_GMS_PORT}" || echo "Connection already exists"
 
   echo "Creating admin user..."
   airflow users create \
@@ -30,10 +32,10 @@ if ! airflow users list 2>/dev/null | grep -q airflow; then
     --firstname airflow \
     --lastname airflow
   
-  echo "Airflow initialization complete!"
-else
-  echo "Airflow already initialized, skipping..."
-fi
+#   echo "Airflow initialization complete!"
+# else
+#   echo "Airflow already initialized, skipping..."
+# fi
 
 # Execute the provided command
 exec "$@"

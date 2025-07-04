@@ -20,6 +20,104 @@
         "name": "ingest_weather_data.create_staging_table_if_not_exists",
         "namespace": "default"
     },
+    "run": {
+        "facets": {
+            "airflow": {
+                "_producer": "https://github.com/apache/airflow/tree/providers-openlineage/2.3.0",
+                "_schemaURL": "https://openlineage.io/spec/2-0-2/OpenLineage.json#/$defs/RunFacet",
+                "dag": {
+                    "dag_id": "ingest_weather_data",
+                    "description": "Ingest NCEI weather data -> Iceberg in S3 + Glue Catalog",
+                    "fileloc": "/opt/airflow/dags/weather/dag.py",
+                    "owner": "airflow",
+                    "owner_links": {},
+                    "schedule_interval": "86400.0 seconds",
+                    "tags": "[]",
+                    "timetable": {
+                        "delta": 86400.0
+                    }
+                },
+                "dagRun": {
+                    "conf": {},
+                    "dag_id": "ingest_weather_data",
+                    "data_interval_end": "2025-07-03T05:22:48.548547+00:00",
+                    "data_interval_start": "2025-07-02T05:22:48.548547+00:00",
+                    "external_trigger": true,
+                    "logical_date": "2025-07-03T05:22:48.548547+00:00",
+                    "run_id": "manual__2025-07-03T05:22:48.548547+00:00",
+                    "run_type": "manual",
+                    "start_date": "2025-07-03T05:22:49.542568+00:00"
+                },
+                "task": {
+                    "deferrable": false,
+                    "depends_on_past": false,
+                    "downstream_task_ids": "['merge_upsert_staging_into_raw_weather']",
+                    "executor_config": {},
+                    "ignore_first_depends_on_past": true,
+                    "inlets": "[]",
+                    "is_setup": false,
+                    "is_teardown": false,
+                    "mapped": false,
+                    "multiple_outputs": false,
+                    "operator_class": "AthenaOperator",
+                    "operator_class_path": "airflow.providers.amazon.aws.operators.athena.AthenaOperator",
+                    "outlets": "[]",
+                    "owner": "airflow",
+                    "priority_weight": 1,
+                    "queue": "default",
+                    "retries": 0,
+                    "retry_exponential_backoff": false,
+                    "task_id": "create_staging_table_if_not_exists",
+                    "trigger_rule": "all_success",
+                    "upstream_task_ids": "['download_and_stage_data']",
+                    "wait_for_downstream": false,
+                    "wait_for_past_depends_before_skipping": false
+                },
+                "taskInstance": {
+                    "duration": 32.336501,
+                    "log_url": "http://localhost:8080/dags/ingest_weather_data/grid?dag_run_id=manual__2025-07-03T05%3A22%3A48.548547%2B00%3A00&task_id=create_staging_table_if_not_exists&base_date=2025-07-03T05%3A22%3A48.548547%2B0000&tab=logs",
+                    "pool": "default_pool",
+                    "queued_dttm": "2025-07-03T05:22:53.589637+00:00",
+                    "try_number": 1
+                },
+                "taskUuid": "0197cebc-ca64-785d-9dff-ed0ea0ae1b24"
+            },
+            "externalQuery": {
+                "_producer": "https://github.com/apache/airflow/tree/providers-openlineage/2.3.0",
+                "_schemaURL": "https://openlineage.io/spec/facets/1-0-2/ExternalQueryRunFacet.json#/$defs/ExternalQueryRunFacet",
+                "externalQueryId": "a0dc1267-8f05-4175-b85a-b3b623a5ae87",
+                "source": "awsathena"
+            },
+            "parent": {
+                "_producer": "https://github.com/apache/airflow/tree/providers-openlineage/2.3.0",
+                "_schemaURL": "https://openlineage.io/spec/facets/1-1-0/ParentRunFacet.json#/$defs/ParentRunFacet",
+                "job": {
+                    "name": "ingest_weather_data",
+                    "namespace": "default"
+                },
+                "root": {
+                    "job": {
+                        "name": "ingest_weather_data",
+                        "namespace": "default"
+                    },
+                    "run": {
+                        "runId": "0197cebc-ca64-7733-a2a3-05679ccd4ee3"
+                    }
+                },
+                "run": {
+                    "runId": "0197cebc-ca64-7733-a2a3-05679ccd4ee3"
+                }
+            },
+            "processing_engine": {
+                "_producer": "https://github.com/apache/airflow/tree/providers-openlineage/2.3.0",
+                "_schemaURL": "https://openlineage.io/spec/facets/1-1-1/ProcessingEngineRunFacet.json#/$defs/ProcessingEngineRunFacet",
+                "name": "Airflow",
+                "openlineageAdapterVersion": "2.3.0",
+                "version": "2.11.0"
+            }
+        },
+        "runId": "0197cebc-ca64-785d-9dff-ed0ea0ae1b24"
+    },
     "outputs": [
         {
             "facets": {
@@ -236,103 +334,5 @@
         }
     ],
     "producer": "https://github.com/apache/airflow/tree/providers-openlineage/2.3.0",
-    "run": {
-        "facets": {
-            "airflow": {
-                "_producer": "https://github.com/apache/airflow/tree/providers-openlineage/2.3.0",
-                "_schemaURL": "https://openlineage.io/spec/2-0-2/OpenLineage.json#/$defs/RunFacet",
-                "dag": {
-                    "dag_id": "ingest_weather_data",
-                    "description": "Ingest NCEI weather data -> Iceberg in S3 + Glue Catalog",
-                    "fileloc": "/opt/airflow/dags/weather/dag.py",
-                    "owner": "airflow",
-                    "owner_links": {},
-                    "schedule_interval": "86400.0 seconds",
-                    "tags": "[]",
-                    "timetable": {
-                        "delta": 86400.0
-                    }
-                },
-                "dagRun": {
-                    "conf": {},
-                    "dag_id": "ingest_weather_data",
-                    "data_interval_end": "2025-07-03T05:22:48.548547+00:00",
-                    "data_interval_start": "2025-07-02T05:22:48.548547+00:00",
-                    "external_trigger": true,
-                    "logical_date": "2025-07-03T05:22:48.548547+00:00",
-                    "run_id": "manual__2025-07-03T05:22:48.548547+00:00",
-                    "run_type": "manual",
-                    "start_date": "2025-07-03T05:22:49.542568+00:00"
-                },
-                "task": {
-                    "deferrable": false,
-                    "depends_on_past": false,
-                    "downstream_task_ids": "['merge_upsert_staging_into_raw_weather']",
-                    "executor_config": {},
-                    "ignore_first_depends_on_past": true,
-                    "inlets": "[]",
-                    "is_setup": false,
-                    "is_teardown": false,
-                    "mapped": false,
-                    "multiple_outputs": false,
-                    "operator_class": "AthenaOperator",
-                    "operator_class_path": "airflow.providers.amazon.aws.operators.athena.AthenaOperator",
-                    "outlets": "[]",
-                    "owner": "airflow",
-                    "priority_weight": 1,
-                    "queue": "default",
-                    "retries": 0,
-                    "retry_exponential_backoff": false,
-                    "task_id": "create_staging_table_if_not_exists",
-                    "trigger_rule": "all_success",
-                    "upstream_task_ids": "['download_and_stage_data']",
-                    "wait_for_downstream": false,
-                    "wait_for_past_depends_before_skipping": false
-                },
-                "taskInstance": {
-                    "duration": 32.336501,
-                    "log_url": "http://localhost:8080/dags/ingest_weather_data/grid?dag_run_id=manual__2025-07-03T05%3A22%3A48.548547%2B00%3A00&task_id=create_staging_table_if_not_exists&base_date=2025-07-03T05%3A22%3A48.548547%2B0000&tab=logs",
-                    "pool": "default_pool",
-                    "queued_dttm": "2025-07-03T05:22:53.589637+00:00",
-                    "try_number": 1
-                },
-                "taskUuid": "0197cebc-ca64-785d-9dff-ed0ea0ae1b24"
-            },
-            "externalQuery": {
-                "_producer": "https://github.com/apache/airflow/tree/providers-openlineage/2.3.0",
-                "_schemaURL": "https://openlineage.io/spec/facets/1-0-2/ExternalQueryRunFacet.json#/$defs/ExternalQueryRunFacet",
-                "externalQueryId": "a0dc1267-8f05-4175-b85a-b3b623a5ae87",
-                "source": "awsathena"
-            },
-            "parent": {
-                "_producer": "https://github.com/apache/airflow/tree/providers-openlineage/2.3.0",
-                "_schemaURL": "https://openlineage.io/spec/facets/1-1-0/ParentRunFacet.json#/$defs/ParentRunFacet",
-                "job": {
-                    "name": "ingest_weather_data",
-                    "namespace": "default"
-                },
-                "root": {
-                    "job": {
-                        "name": "ingest_weather_data",
-                        "namespace": "default"
-                    },
-                    "run": {
-                        "runId": "0197cebc-ca64-7733-a2a3-05679ccd4ee3"
-                    }
-                },
-                "run": {
-                    "runId": "0197cebc-ca64-7733-a2a3-05679ccd4ee3"
-                }
-            },
-            "processing_engine": {
-                "_producer": "https://github.com/apache/airflow/tree/providers-openlineage/2.3.0",
-                "_schemaURL": "https://openlineage.io/spec/facets/1-1-1/ProcessingEngineRunFacet.json#/$defs/ProcessingEngineRunFacet",
-                "name": "Airflow",
-                "openlineageAdapterVersion": "2.3.0",
-                "version": "2.11.0"
-            }
-        },
-        "runId": "0197cebc-ca64-785d-9dff-ed0ea0ae1b24"
-    },
     "schemaURL": "https://openlineage.io/spec/2-0-2/OpenLineage.json#/$defs/RunEvent"
 }

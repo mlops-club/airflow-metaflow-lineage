@@ -168,3 +168,21 @@ Resources
 - [Airflow-DataHub integration docs](https://docs.datahub.com/docs/lineage/airflow)
 - [Datahub Docker Quickstart](https://docs.datahub.com/docs/quickstart)
 
+## OpenLineage
+
+```
+START Flow (root)
+   START    start
+   COMPLETE start
+   START    step_1
+       START    query_1
+       COMPLETE query_1
+       START    query_2
+       COMPLETE query_2
+       ...
+   COMPLETE step_1
+   ...
+   START    end
+   COMPLETE end
+COMPLETE Flow
+```
