@@ -3,9 +3,10 @@
 import awswrangler as wr
 import pandas as pd
 import re
+import boto3
 from typing import Optional, Dict, Any
 from jinja2 import DebugUndefined, Template
-
+from rich import print
 
 def _is_valid_snake_case_identifier(name: str) -> bool:
     """
@@ -67,6 +68,45 @@ def query_pandas_from_athena(
         database=glue_database,
         s3_output=s3_output_location,
     )
+    
+    # Extract lineage information after successful query execution
+    try:
+        from .sql_openlineage.athena_extractor import extract_athena_lineage, AthenaConfig
+        
+        # Get region from current session or default
+        session = boto3.Session()
+        region_name = session.region_name or "us-east-1"
+        
+        # Create Athena configuration
+        config = AthenaConfig(
+            region_name=region_name,
+            database=glue_database,
+            catalog="AwsDataCatalog",
+            output_location=s3_output_location
+        )
+        
+        # Create Athena client
+        athena_client = boto3.client('athena', region_name=config.region_name)
+        
+        # Extract lineage information
+        lineage_info = extract_athena_lineage(
+            task_name=job_name,
+            query=sql_query,
+            config=config,
+            athena_client=athena_client,
+            query_execution_id=None  # SELECT queries don't have execution IDs readily available
+        )
+        
+        print(f"=== Lineage Information for '{job_name}' ===")
+        print(f"Job facets: {lineage_info.job_facets}")
+        print(f"Run facets: {lineage_info.run_facets}")
+        print(f"Input datasets: {[ds.name for ds in lineage_info.inputs]}")
+        print(f"Output datasets: {[ds.name for ds in lineage_info.outputs]}")
+        print("=" * 50)
+        
+    except Exception as e:
+        print(f"Warning: Failed to extract lineage for '{job_name}': {e}")
+    
     print(f"Query '{job_name}' executed successfully. Returned {len(df)} rows.")
     return df
 
@@ -120,6 +160,45 @@ def execute_query(
     # Extract query execution details
     query_execution_id = query_response["QueryExecutionId"]
     query_state = query_response["Status"]["State"]
+
+    # Extract lineage information after successful query execution
+    if query_state == "SUCCEEDED":
+        try:
+            from .sql_openlineage.athena_extractor import extract_athena_lineage, AthenaConfig
+            
+            # Get region from current session or default
+            session = boto3.Session()
+            region_name = session.region_name or "us-east-1"
+            
+            # Create Athena configuration
+            config = AthenaConfig(
+                region_name=region_name,
+                database=glue_database,
+                catalog="AwsDataCatalog",
+                output_location=s3_output_location
+            )
+            
+            # Create Athena client
+            athena_client = boto3.client('athena', region_name=config.region_name)
+            
+            # Extract lineage information
+            lineage_info = extract_athena_lineage(
+                task_name=job_name,
+                query=sql_query,
+                config=config,
+                athena_client=athena_client,
+                query_execution_id=query_execution_id
+            )
+            
+            print(f"=== Lineage Information for '{job_name}' ===")
+            print(f"Job facets: {lineage_info.job_facets}")
+            print(f"Run facets: {lineage_info.run_facets}")
+            print(f"Input datasets: {[ds.name for ds in lineage_info.inputs]}")
+            print(f"Output datasets: {[ds.name for ds in lineage_info.outputs]}")
+            print("=" * 50)
+            
+        except Exception as e:
+            print(f"Warning: Failed to extract lineage for '{job_name}': {e}")
 
     # Check if query succeeded
     if query_state == "SUCCEEDED":
