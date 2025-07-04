@@ -1,0 +1,32 @@
+{
+    "recommendations": [
+        // official python extension
+        "ms-python.python",
+        // code quality
+        "charliermarsh.ruff",
+        "ms-python.vscode-pylance",
+        "ms-python.mypy-type-checker",
+        // official extension pack for jupyter notebooks
+        "ms-toolsai.jupyter",
+        // official extension pack for SSH tunneling, WSL, dev containers, etc..
+        "ms-vscode-remote.vscode-remote-extensionpack",
+        // google-docs-like real-time collaboration
+        "ms-vsliveshare.vsliveshare",
+        // file support: justfile, markdown/mermaid, toml, yaml, jinja
+        "yzhang.markdown-all-in-one",
+        "bierner.markdown-mermaid",
+        "tamasfe.even-better-toml",
+        "redhat.vscode-yaml",
+        "samuelcolvin.jinjahtml",
+        // tools: git, docker
+        "eamodio.gitlens",
+        "ms-azuretools.vscode-containers",
+        // GitHub
+        "github.vscode-github-actions",
+        // autocompletion for file paths
+        "christian-kohler.path-intellisense",
+        // Automatically activate Python virtual environments as you navigate the source code.
+        // https://marketplace.visualstudio.com/items?itemName=teticio.python-envy
+        "teticio.python-envy",
+    ]
+}

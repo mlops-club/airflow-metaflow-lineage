@@ -34,3 +34,91 @@ dev = [
 # [build-system]
 # requires = ["hatchling"]
 # build-backend = "hatchling.build"
+
+# https://github.com/astral-sh/ruff?tab=readme-ov-file#configuration
+[tool.ruff]
+line-length = 119
+
+# https://docs.astral.sh/ruff/rules/
+[tool.ruff.lint]
+extend-select = [
+    # pycodestyle errors
+    "E",
+    # flake8-bugbear
+    "B",
+    # pylint equivalent rules
+    "PL",
+    # isort
+    "I",
+    # pydocstyle for docstrings
+    "D",
+    # pep8-naming
+    "N",
+]
+ignore = [
+    "E501", # line-too-long
+    "F401", # unused-import
+    "W605", # invalid-escape-sequence
+    "W291", # trailing-whitespace"
+    "UP032", # Use f-string instead of format call
+    # pydocstyle - https://docs.astral.sh/ruff/rules/#pydocstyle-d
+    "D103", # undocumented-public-function
+    "D104", # Missing docstring in public package
+    "D107", # Missing docstring in `__init__`
+    "D203", # incorrect-blank-line-before-class
+    "D100", # undocumented-public-module
+    "D212", # multi-line-summary-first-line
+    "D400", # first line should end with a period
+    "D401", # first line should be in imperative mood
+    "D415", # First line should end with a period, question mark, or exclamation point
+    # https://docs.astral.sh/ruff/rules/#pylint-pl
+    "PLR2004", # Magic value used in comparison, consider replacing `2` with a constant variable
+    # Magic value used in comparison, consider replacing `4` with a constant variable -- Is problem for tests
+    "PLR2004",
+    # `with` statement variable `tmp_dir` overwritten by assignment target, eg: tests/unit_tests/components/metaflow_project/test__metaflow_project_.py:17:9
+    "PLW2901",
+]
+[tool.ruff.pydocstyle]
+convention = "google"
+max-line-length = 119
+
+[tool.poe]
+executor.type = "uv"
+
+[tool.poe.tasks.clean]
+help = "Remove all Artifacts"
+shell = """
+rm -rf dist build coverage.xml test-reports sample/ tests/cookiecutter*json
+    find . \\
+      -type d \\
+      \\( \\
+        -name "*cache*" \\
+        -o -name "*.dist-info" \\
+        -o -name "*.egg-info" \\
+        -o -name "*htmlcov" \\
+        -o -name "*.metaflow" \\
+        -o -name "*.metaflow.s3" \\
+        -o -name "*.mypy_cache" \\
+        -o -name "*.pytest_cache" \\
+        -o -name "*.ruff_cache" \\
+        -o -name "*__pycache__" \\
+      \\) \\
+      -not -path "*env/*" \\
+      -not -path "*venv/*" \\
+      -not -path "*/.venv/*" \\
+      -not -path "*/node_modules/*" \\
+      -exec rm -rf {} + 2>/dev/null || true
+
+    find . \\
+      -type f \\
+      \\( \\
+        -name "*.pyc" \\
+        -o -name "*.DS_Store" \\
+        -o -name "*.coverage*" \\
+      \\) \\
+      -not -path "*env/*" \\
+      -not -path "*venv/*" \\
+      -not -path "*/.venv/*" \\
+      -not -path "*/node_modules/*" \\
+      -exec rm -f {} + 2>/dev/null || true
+"""

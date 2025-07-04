@@ -1,10 +1,11 @@
-from metaflow import FlowSpec, step, Config, current
-from pydantic import BaseModel, Field
-from pathlib import Path
-from datetime import datetime, timedelta
-import yaml
 import io
+from datetime import datetime, timedelta
+from pathlib import Path
 
+import yaml
+from pydantic import BaseModel, Field
+
+from metaflow import Config, FlowSpec, current, step
 
 THIS_DIR = Path(__file__).parent
 SQL_DIR = THIS_DIR / "sql"
@@ -165,19 +166,20 @@ class ForecastNumberOfYellowTaxiRides(FlowSpec):
 
         And predictions would be written to the lakehouse in a separate flow.
         """
-        from helpers.forecasting import generate_seasonal_naive_forecast
         import pandas as pd
+        from helpers.forecasting import generate_seasonal_naive_forecast
 
         # Populate up_to_as_of_datetime with training data up to the as_of_datetime
         as_of_dt = datetime.fromisoformat(
             self.cfg.as_of_datetime.replace("Z", "+00:00")
         )
-        
+
         up_to_as_of_datetime = self.training_data_df[
-            pd.to_datetime(self.training_data_df[['year', 'month', 'day', 'hour']]) <= as_of_dt
+            pd.to_datetime(self.training_data_df[["year", "month", "day", "hour"]])
+            <= as_of_dt
         ].copy()
-        
-        self.seasonal_forecast: pd.DataFrame = generate_seasonal_naive_forecast(
+
+        self.seasonal_forecast = generate_seasonal_naive_forecast(
             predict_horizon_hours=self.cfg.predict_horizon_hours,
             up_to_as_of_datetime=up_to_as_of_datetime,
         )
@@ -199,13 +201,13 @@ class ForecastNumberOfYellowTaxiRides(FlowSpec):
             database=self.cfg.glue_database,
             table="yellow_rides_hourly_forecast",
             mode="append",
-            keep_files=False, # CLEAN UP duplicate files or you'll regret it!
+            keep_files=False,  # CLEAN UP duplicate files or you'll regret it!
             merge_condition="update",
             merge_cols=["pulocationid", "year", "month", "day", "hour"],
-            temp_path= f"s3://{self.cfg.datalake_s3_bucket}/athena-results/temp/",
+            temp_path=f"s3://{self.cfg.datalake_s3_bucket}/athena-results/temp/",
             schema_evolution=False,
         )
-        
+
         self.next(self.end)
 
     @step

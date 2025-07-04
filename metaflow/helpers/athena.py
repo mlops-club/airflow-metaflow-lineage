@@ -1,36 +1,39 @@
 """SQL execution utilities for AWS Athena/Glue using AWS Data Wrangler."""
 
-import awswrangler as wr
-import pandas as pd
 import re
+from datetime import datetime, timezone
+from typing import Any, Dict, Optional
+
+import awswrangler as wr
 import boto3
-from typing import Optional, Dict, Any
+import pandas as pd
 from jinja2 import DebugUndefined, Template
-from rich import print
-from .sql_openlineage.sqlparser import LineageInfo
-from .openlineage import _create_openlineage_client
-from openlineage.client.run import RunEvent, RunState, Run, Job
+from openlineage.client.run import Job, Run, RunEvent, RunState
 from openlineage.client.uuid import generate_new_uuid
-from datetime import datetime
+from rich import print
+
+from .openlineage import _create_openlineage_client
+from .sql_openlineage.sqlparser import LineageInfo
+
 
 def _is_valid_snake_case_identifier(name: str) -> bool:
     """
     Validate that a string is a valid lower snake case identifier.
-    
+
     Args:
         name: String to validate
-        
+
     Returns:
         True if valid, False otherwise
+
     """
     if not name:
         return False
-    
+
     # Check if it matches snake_case pattern: lowercase letters, numbers, underscores
     # Must start with a letter or underscore, no consecutive underscores, no trailing underscore
-    pattern = r'^[a-z_][a-z0-9_]*[a-z0-9]$|^[a-z]$'
-    return bool(re.match(pattern, name)) and '__' not in name
-
+    pattern = r"^[a-z_][a-z0-9_]*[a-z0-9]$|^[a-z]$"
+    return bool(re.match(pattern, name)) and "__" not in name
 
 
 def query_pandas_from_athena(
@@ -55,11 +58,14 @@ def query_pandas_from_athena(
 
     Returns:
         DataFrame with query results
+
     """
     # Validate job_name format
     if not _is_valid_snake_case_identifier(job_name):
-        raise ValueError(f"job_name must be a valid lower snake case identifier. Got: {job_name}")
-    
+        raise ValueError(
+            f"job_name must be a valid lower snake case identifier. Got: {job_name}"
+        )
+
     # Apply Jinja2 templating if context is provided
     if ctx is not None:
         sql_query = substitute_map_into_string(sql_query, ctx)
@@ -73,48 +79,51 @@ def query_pandas_from_athena(
         database=glue_database,
         s3_output=s3_output_location,
     )
-    
+
     # Extract lineage information after successful query execution
     try:
-        from .sql_openlineage.athena_extractor import extract_athena_lineage, AthenaConfig
-        
+        from .sql_openlineage.athena_extractor import (
+            AthenaConfig,
+            extract_athena_lineage,
+        )
+
         # Get region from current session or default
         session = boto3.Session()
         region_name = session.region_name or "us-east-1"
-        
+
         # Create Athena configuration
         config = AthenaConfig(
             region_name=region_name,
             database=glue_database,
             catalog="AwsDataCatalog",
-            output_location=s3_output_location
+            output_location=s3_output_location,
         )
-        
+
         # Create Athena client
-        athena_client = boto3.client('athena', region_name=config.region_name)
-        
+        athena_client = boto3.client("athena", region_name=config.region_name)
+
         # Extract lineage information
         lineage_info = extract_athena_lineage(
             task_name=job_name,
             query=sql_query,
             config=config,
             athena_client=athena_client,
-            query_execution_id=None  # SELECT queries don't have execution IDs readily available
+            query_execution_id=None,  # SELECT queries don't have execution IDs readily available
         )
-        
+
         print(f"=== Lineage Information for '{job_name}' ===")
         print(f"Job facets: {lineage_info.job_facets}")
         print(f"Run facets: {lineage_info.run_facets}")
         print(f"Input datasets: {[ds.name for ds in lineage_info.inputs]}")
         print(f"Output datasets: {[ds.name for ds in lineage_info.outputs]}")
         print("=" * 50)
-        
+
         # Emit OpenLineage COMPLETE event
         emit_openlineage_complete_event(lineage_info, job_name)
-        
+
     except Exception as e:
         print(f"Warning: Failed to extract lineage for '{job_name}': {e}")
-    
+
     print(f"Query '{job_name}' executed successfully. Returned {len(df)} rows.")
     return df
 
@@ -141,11 +150,14 @@ def execute_query(
 
     Returns:
         Query execution ID
+
     """
     # Validate job_name format
     if not _is_valid_snake_case_identifier(job_name):
-        raise ValueError(f"job_name must be a valid lower snake case identifier. Got: {job_name}")
-    
+        raise ValueError(
+            f"job_name must be a valid lower snake case identifier. Got: {job_name}"
+        )
+
     # Apply Jinja2 templating if context is provided
     if ctx is not None:
         sql_query = substitute_map_into_string(sql_query, ctx)
@@ -172,46 +184,49 @@ def execute_query(
     # Extract lineage information after successful query execution
     if query_state == "SUCCEEDED":
         try:
-            from .sql_openlineage.athena_extractor import extract_athena_lineage, AthenaConfig
-            
+            from .sql_openlineage.athena_extractor import (
+                AthenaConfig,
+                extract_athena_lineage,
+            )
+
             # Get region from current session or default
             session = boto3.Session()
             region_name = session.region_name or "us-east-1"
-            
+
             # Create Athena configuration
             config = AthenaConfig(
                 region_name=region_name,
                 database=glue_database,
                 catalog="AwsDataCatalog",
-                output_location=s3_output_location
+                output_location=s3_output_location,
             )
-            
+
             # Extract lineage information
             lineage_info = extract_athena_lineage(
                 task_name=job_name,
                 query=sql_query,
                 config=config,
-                query_execution_id=query_execution_id
+                query_execution_id=query_execution_id,
             )
 
-            
-            
             print(f"=== Lineage Information for '{job_name}' ===")
             print(f"Job facets: {lineage_info.job_facets}")
             print(f"Run facets: {lineage_info.run_facets}")
             print(f"Input datasets: {[ds.name for ds in lineage_info.inputs]}")
             print(f"Output datasets: {[ds.name for ds in lineage_info.outputs]}")
             print("=" * 50)
-            
+
             # Emit OpenLineage COMPLETE event
             emit_openlineage_complete_event(lineage_info, job_name)
-            
+
         except Exception as e:
             print(f"Warning: Failed to extract lineage for '{job_name}': {e}")
 
     # Check if query succeeded
     if query_state == "SUCCEEDED":
-        print(f"DDL/DML query '{job_name}' executed successfully. Query ID: {query_execution_id}")
+        print(
+            f"DDL/DML query '{job_name}' executed successfully. Query ID: {query_execution_id}"
+        )
         return query_execution_id
     elif query_state == "FAILED":
         failure_reason = query_response["Status"].get(
@@ -221,15 +236,19 @@ def execute_query(
             f"Query '{job_name}' failed. Query ID: {query_execution_id}. Reason: {failure_reason}"
         )
     elif query_state == "CANCELLED":
-        raise RuntimeError(f"Query '{job_name}' was cancelled. Query ID: {query_execution_id}")
+        raise RuntimeError(
+            f"Query '{job_name}' was cancelled. Query ID: {query_execution_id}"
+        )
     else:
         # This shouldn't happen with wait=True, but just in case
         raise RuntimeError(
             f"Query '{job_name}' finished with unexpected state: {query_state}. Query ID: {query_execution_id}"
         )
 
+
 def substitute_map_into_string(string: str, values: dict[str, Any]) -> str:
-    """Format a string using a dictionary with Jinja2 templating.
+    """
+    Format a string using a dictionary with Jinja2 templating.
 
     :param string: The template string containing placeholders
     :param values: A dictionary of values to substitute into the template
@@ -237,61 +256,64 @@ def substitute_map_into_string(string: str, values: dict[str, Any]) -> str:
     template = Template(string, undefined=DebugUndefined)
     return template.render(values)
 
-def emit_openlineage_complete_event(lineage_info: LineageInfo, job_name: str, namespace: str = "metaflow") -> None:
+
+def emit_openlineage_complete_event(
+    lineage_info: LineageInfo, job_name: str, namespace: str = "metaflow"
+) -> None:
     """
     Emit an OpenLineage COMPLETE event with lineage information.
-    
+
     Args:
         lineage_info: LineageInfo object containing job facets, run facets, inputs, and outputs
         job_name: Name of the job/task
         namespace: OpenLineage namespace (default: "metaflow")
+
     """
     client = _create_openlineage_client()
-    
+
     # Create job and run objects
-    job = Job(
-        namespace=namespace,
-        name=job_name,
-        facets=lineage_info.job_facets
-    )
-    
+    job = Job(namespace=namespace, name=job_name, facets=lineage_info.job_facets)
+
     run_id = str(generate_new_uuid())
-    run = Run(
-        runId=run_id,
-        facets=lineage_info.run_facets
-    )
-    
+    run = Run(runId=run_id, facets=lineage_info.run_facets)
+
     # Convert datasets to the correct type for RunEvent
     from openlineage.client.run import Dataset as RunDataset
-    
+
     # Convert input datasets
     run_inputs = []
     for dataset in lineage_info.inputs:
-        run_inputs.append(RunDataset(
-            namespace=dataset.namespace,
-            name=dataset.name,
-            facets=dataset.facets or {}
-        ))
-    
+        run_inputs.append(
+            RunDataset(
+                namespace=dataset.namespace,
+                name=dataset.name,
+                facets=dataset.facets or {},
+            )
+        )
+
     # Convert output datasets
     run_outputs = []
     for dataset in lineage_info.outputs:
-        run_outputs.append(RunDataset(
-            namespace=dataset.namespace,
-            name=dataset.name,
-            facets=dataset.facets or {}
-        ))
-    
+        run_outputs.append(
+            RunDataset(
+                namespace=dataset.namespace,
+                name=dataset.name,
+                facets=dataset.facets or {},
+            )
+        )
+
     # Create and emit the COMPLETE event with input and output datasets
     event = RunEvent(
         eventType=RunState.COMPLETE,
-        eventTime=datetime.utcnow().isoformat(),
+        eventTime=datetime.now(timezone.utc).isoformat(),
         run=run,
         job=job,
         inputs=run_inputs if run_inputs else None,
         outputs=run_outputs if run_outputs else None,
-        producer="https://github.com/OpenLineage/OpenLineage/tree/1.34.0/integration/sagemaker"
+        producer="https://github.com/OpenLineage/OpenLineage/tree/1.34.0/integration/sagemaker",
     )
-    
+
     client.emit(event)
-    print(f"✅ Emitted OpenLineage COMPLETE event for job '{job_name}' with {len(lineage_info.inputs)} inputs and {len(lineage_info.outputs)} outputs")
+    print(
+        f"✅ Emitted OpenLineage COMPLETE event for job '{job_name}' with {len(lineage_info.inputs)} inputs and {len(lineage_info.outputs)} outputs"
+    )
