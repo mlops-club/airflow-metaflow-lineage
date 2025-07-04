@@ -6,12 +6,7 @@ from typing import TypedDict, Dict, List, Optional, Any, Protocol
 
 import sqlparse
 from openlineage.client.event_v2 import Dataset
-from openlineage.client.facet_v2 import (
-    BaseFacet, 
-    column_lineage_dataset, 
-    extraction_error_run, 
-    sql_job
-)
+from openlineage.client.facet_v2 import BaseFacet, column_lineage_dataset, extraction_error_run, sql_job
 from openlineage.common.sql import DbTableMeta, SqlMeta, parse
 from openlineage.client.facet_v2 import (
     nominal_time_run,
@@ -29,14 +24,15 @@ TablesHierarchy = Dict[Optional[str], Dict[Optional[str], List[str]]]
 
 class DatabaseConnection(Protocol):
     """Protocol for database connections."""
-    
+
     def execute(self, query: str) -> Any:
         """Execute a query and return results."""
         ...
-    
+
     def get_schema_info(self, database: str, schema: str, table: str) -> Dict[str, Any]:
         """Get schema information for a table."""
         ...
+
 
 log = logging.getLogger(__name__)
 
@@ -57,22 +53,20 @@ def default_normalize_name_method(name: str) -> str:
 
 class LineageInfo:
     """Container for lineage information, replaces OperatorLineage."""
-    
+
     def __init__(
-        self, 
+        self,
         job_facets: Optional[Dict[str, BaseFacet]] = None,
         run_facets: Optional[Dict[str, BaseFacet]] = None,
         inputs: Optional[List[Dataset]] = None,
-        outputs: Optional[List[Dataset]] = None
+        outputs: Optional[List[Dataset]] = None,
     ):
         self.job_facets = job_facets or {}
         self.run_facets = run_facets or {
             "nominalTime": nominal_time_run.NominalTimeRunFacet(
                 nominalStartTime=datetime.now(timezone.utc).isoformat()
             ),
-            "processing_engine": processing_engine_run.ProcessingEngineRunFacet(
-                name="sagemaker", version="1.0.0"
-            )
+            "processing_engine": processing_engine_run.ProcessingEngineRunFacet(name="sagemaker", version="1.0.0"),
         }
         self.inputs = inputs or []
         self.outputs = outputs or []
@@ -190,9 +184,7 @@ class DatabaseInfo:
         self.normalize_name_method = normalize_name_method
 
 
-def from_table_meta(
-    table_meta: DbTableMeta, database: Optional[str], namespace: str, is_uppercase: bool
-) -> Dataset:
+def from_table_meta(table_meta: DbTableMeta, database: Optional[str], namespace: str, is_uppercase: bool) -> Dataset:
     if table_meta.database:
         name = table_meta.qualified_name
     elif database:
@@ -235,16 +227,10 @@ class SQLParser:
     ) -> tuple[List[Dataset], List[Dataset]]:
         database = database if database else database_info.database
         return [
-            from_table_meta(dataset, database, namespace, database_info.is_uppercase_names)
-            for dataset in inputs
-        ], [
-            from_table_meta(dataset, database, namespace, database_info.is_uppercase_names)
-            for dataset in outputs
-        ]
+            from_table_meta(dataset, database, namespace, database_info.is_uppercase_names) for dataset in inputs
+        ], [from_table_meta(dataset, database, namespace, database_info.is_uppercase_names) for dataset in outputs]
 
-    def attach_column_lineage(
-        self, datasets: List[Dataset], database: Optional[str], parse_result: SqlMeta
-    ) -> None:
+    def attach_column_lineage(self, datasets: List[Dataset], database: Optional[str], parse_result: SqlMeta) -> None:
         """
         Attaches column lineage facet to the list of datasets.
 
@@ -328,7 +314,7 @@ class SQLParser:
             )
 
         namespace = self.create_namespace(database_info=database_info)
-        
+
         # Use parser-only metadata extraction (no database connection required)
         inputs, outputs = self.get_metadata_from_parser(
             inputs=parse_result.in_tables,
@@ -350,9 +336,7 @@ class SQLParser:
     @staticmethod
     def create_namespace(database_info: DatabaseInfo) -> str:
         return (
-            f"{database_info.scheme}://{database_info.authority}"
-            if database_info.authority
-            else database_info.scheme
+            f"{database_info.scheme}://{database_info.authority}" if database_info.authority else database_info.scheme
         )
 
     @classmethod
@@ -367,6 +351,7 @@ class SQLParser:
 
         Uses sqlparse to split SQL statements.
         """
+
         def split_statement(sql: str, strip_semicolon: bool = False) -> List[str]:
             splits = sqlparse.split(
                 sql=sqlparse.format(sql, strip_comments=True),

@@ -6,6 +6,7 @@ from openlineage.client.utils import RedactMixin
 OPENLINEAGE_PROVIDER_VERSION = "1.0.0"
 DEFAULT_NAMESPACE = "default"
 
+
 def get_task_parent_run_facet(
     parent_run_id: str, parent_job_name: str, parent_job_namespace: str = DEFAULT_NAMESPACE
 ) -> Dict[str, Any]:
@@ -26,16 +27,18 @@ def get_task_parent_run_facet(
         )
     }
 
+
 def get_processing_engine_facet() -> dict[str, processing_engine_run.ProcessingEngineRunFacet]:
     from openlineage.client.facet_v2 import processing_engine_run
 
     return {
         "processing_engine": processing_engine_run.ProcessingEngineRunFacet(
-            version="2", # AIRFLOW_VERSION,
+            version="2",  # AIRFLOW_VERSION,
             name="Metaflow",
             openlineageAdapterVersion=OPENLINEAGE_PROVIDER_VERSION,
         )
     }
+
 
 # def get_airflow_debug_facet() -> dict[str, AirflowDebugRunFacet]:
 #     if not conf.debug_mode():

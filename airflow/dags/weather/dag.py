@@ -1,6 +1,7 @@
 from typing import Literal
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.providers.amazon.aws.operators.athena import AthenaOperator
+
 try:
     # Airflow 3+
     from airflow.sdk import dag, task, Variable
@@ -31,11 +32,10 @@ TMeasurementTypes = Literal["prcp", "tavg", "tmin", "tmax"]
 MEASUREMENT_TYPES: list[TMeasurementTypes] = ["prcp", "tavg", "tmin", "tmax"]
 MEASUREMENT_NAMES = {
     "prcp": "precipitation",
-    "tavg": "average_temperature", 
+    "tavg": "average_temperature",
     "tmin": "min_temperature",
-    "tmax": "max_temperature"
+    "tmax": "max_temperature",
 }
-
 
 
 @dag(
@@ -43,7 +43,6 @@ MEASUREMENT_NAMES = {
     description="Ingest NCEI weather data -> Iceberg in S3 + Glue Catalog",
 )
 def ingest_weather_data():
-
     download = download_and_stage_data()
 
     create_staging_table_if_not_exists = make_athena_query_operator(
@@ -69,14 +68,16 @@ def ingest_weather_data():
         >> merge_upsert_staging_into_raw_weather
     )
 
+
 def make_download_weather_url(year: int, month: int, measurement: TMeasurementTypes) -> str:
     return f"https://www.ncei.noaa.gov/pub/data/daily-grids/v1-0-0/averages/{year}/{measurement}-{year}{month:02d}-cty-scaled.csv"
+
 
 def weather_file_already_exists(s3: S3Hook, year: int, month: int, measurement: TMeasurementTypes) -> bool:
     """Check if weather data file for a given year-month-measurement already exists in S3 staging"""
     file_name = f"{measurement}-{year}-{month:02d}.csv"
     s3_key = f"{STAGING_PREFIX}/{file_name}"
-    
+
     try:
         return s3.check_for_key(key=s3_key, bucket_name=S3_DATA_LAKE_BUCKET)
     except Exception as e:
@@ -84,23 +85,25 @@ def weather_file_already_exists(s3: S3Hook, year: int, month: int, measurement: 
         return False
 
 
-def download_and_stage_weather_file_if_not_exists(s3: S3Hook, year: int, month: int, measurement: TMeasurementTypes) -> bool:
+def download_and_stage_weather_file_if_not_exists(
+    s3: S3Hook, year: int, month: int, measurement: TMeasurementTypes
+) -> bool:
     """Download and stage weather data file if it doesn't exist. Returns True if downloaded."""
     if weather_file_already_exists(s3, year, month, measurement):
         file_name = f"{measurement}-{year}-{month:02d}.csv"
         print(f"File {file_name} already exists in S3, skipping download")
         return False
-    
+
     url = make_download_weather_url(year, month, measurement)
     file_name = f"{measurement}-{year}-{month:02d}.csv"
     s3_key = f"{STAGING_PREFIX}/{file_name}"
-    
+
     print(f"Downloading {url} ...")
-    
+
     try:
         response = requests.get(url)
         response.raise_for_status()
-        
+
         # Save directly to S3
         s3.load_bytes(
             response.content,
@@ -110,7 +113,7 @@ def download_and_stage_weather_file_if_not_exists(s3: S3Hook, year: int, month: 
         )
         print(f"Uploaded {file_name} to s3://{S3_DATA_LAKE_BUCKET}/{s3_key}")
         return True
-        
+
     except requests.exceptions.RequestException as e:
         print(f"Failed to download {file_name}: {e}")
         return False
@@ -141,7 +144,7 @@ def download_and_stage_data() -> None:
                 files_downloaded += 1
             else:
                 files_skipped += 1
-    
+
     print(f"Download summary: {files_downloaded} files downloaded, {files_skipped} files skipped")
 
 
@@ -158,6 +161,7 @@ def make_athena_query_operator(
         aws_conn_id="aws_default",
         region_name=AWS_REGION,
     )
+
 
 this_dag = ingest_weather_data()
 

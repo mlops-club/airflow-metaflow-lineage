@@ -62,9 +62,7 @@ def query_pandas_from_athena(
     """
     # Validate job_name format
     if not _is_valid_snake_case_identifier(job_name):
-        raise ValueError(
-            f"job_name must be a valid lower snake case identifier. Got: {job_name}"
-        )
+        raise ValueError(f"job_name must be a valid lower snake case identifier. Got: {job_name}")
 
     # Apply Jinja2 templating if context is provided
     if ctx is not None:
@@ -154,9 +152,7 @@ def execute_query(
     """
     # Validate job_name format
     if not _is_valid_snake_case_identifier(job_name):
-        raise ValueError(
-            f"job_name must be a valid lower snake case identifier. Got: {job_name}"
-        )
+        raise ValueError(f"job_name must be a valid lower snake case identifier. Got: {job_name}")
 
     # Apply Jinja2 templating if context is provided
     if ctx is not None:
@@ -224,21 +220,13 @@ def execute_query(
 
     # Check if query succeeded
     if query_state == "SUCCEEDED":
-        print(
-            f"DDL/DML query '{job_name}' executed successfully. Query ID: {query_execution_id}"
-        )
+        print(f"DDL/DML query '{job_name}' executed successfully. Query ID: {query_execution_id}")
         return query_execution_id
     elif query_state == "FAILED":
-        failure_reason = query_response["Status"].get(
-            "StateChangeReason", "Unknown error"
-        )
-        raise RuntimeError(
-            f"Query '{job_name}' failed. Query ID: {query_execution_id}. Reason: {failure_reason}"
-        )
+        failure_reason = query_response["Status"].get("StateChangeReason", "Unknown error")
+        raise RuntimeError(f"Query '{job_name}' failed. Query ID: {query_execution_id}. Reason: {failure_reason}")
     elif query_state == "CANCELLED":
-        raise RuntimeError(
-            f"Query '{job_name}' was cancelled. Query ID: {query_execution_id}"
-        )
+        raise RuntimeError(f"Query '{job_name}' was cancelled. Query ID: {query_execution_id}")
     else:
         # This shouldn't happen with wait=True, but just in case
         raise RuntimeError(
@@ -257,9 +245,7 @@ def substitute_map_into_string(string: str, values: dict[str, Any]) -> str:
     return template.render(values)
 
 
-def emit_openlineage_complete_event(
-    lineage_info: LineageInfo, job_name: str, namespace: str = "metaflow"
-) -> None:
+def emit_openlineage_complete_event(lineage_info: LineageInfo, job_name: str, namespace: str = "metaflow") -> None:
     """
     Emit an OpenLineage COMPLETE event with lineage information.
 

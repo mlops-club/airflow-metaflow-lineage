@@ -66,9 +66,7 @@ class TableSchema:
         # Prefix the table name with database and schema name using
         # the format: {database_name}.{table_schema}.{table_name}.
         name = ".".join(
-            part
-            for part in [self.database or database, self.schema or schema, self.table]
-            if part is not None
+            part for part in [self.database or database, self.schema or schema, self.table] if part is not None
         )
         return Dataset(
             namespace=namespace,
@@ -198,9 +196,7 @@ def create_information_schema_query(
                 uppercase_names=uppercase_names,
             )
             select_statements.append(information_schema_table.select().filter(filter_clauses))
-    return str(
-        union_all(*select_statements).compile(sqlalchemy_engine, compile_kwargs={"literal_binds": True})
-    )
+    return str(union_all(*select_statements).compile(sqlalchemy_engine, compile_kwargs={"literal_binds": True}))
 
 
 def create_filter_clauses(
@@ -233,9 +229,7 @@ def create_filter_clauses(
             )
             if schema:
                 schema = schema.upper() if uppercase_names else schema
-                filter_clause = and_(
-                    information_schema_table.c[table_schema_column_name] == schema, filter_clause
-                )
+                filter_clause = and_(information_schema_table.c[table_schema_column_name] == schema, filter_clause)
             schema_level_clauses.append(filter_clause)
         if db and table_database_column_name:
             db = db.upper() if uppercase_names else db

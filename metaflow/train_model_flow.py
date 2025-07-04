@@ -73,9 +73,7 @@ class ForecastNumberOfYellowTaxiRides(FlowSpec):
         )
 
         # compute and merge actuals into the actuals table
-        as_of_dt = datetime.fromisoformat(
-            self.cfg.as_of_datetime.replace("Z", "+00:00")
-        )
+        as_of_dt = datetime.fromisoformat(self.cfg.as_of_datetime.replace("Z", "+00:00"))
         execute_query(
             sql_query=(SQL_DIR / "compute_actuals.sql").read_text(),
             glue_database=self.cfg.glue_database,
@@ -84,12 +82,10 @@ class ForecastNumberOfYellowTaxiRides(FlowSpec):
             ctx={
                 "glue_database": self.cfg.glue_database,
                 "datalake_s3_bucket": self.cfg.datalake_s3_bucket,
-                "start_datetime": (
-                    as_of_dt - timedelta(days=self.cfg.lookback_days * 2)
-                ).strftime("%Y-%m-%d %H:%M:%S"),
-                "end_datetime": (
-                    as_of_dt + timedelta(days=self.cfg.lookback_days * 2)
-                ).strftime("%Y-%m-%d %H:%M:%S"),
+                "start_datetime": (as_of_dt - timedelta(days=self.cfg.lookback_days * 2)).strftime(
+                    "%Y-%m-%d %H:%M:%S"
+                ),
+                "end_datetime": (as_of_dt + timedelta(days=self.cfg.lookback_days * 2)).strftime("%Y-%m-%d %H:%M:%S"),
             },
         )
 
@@ -170,13 +166,10 @@ class ForecastNumberOfYellowTaxiRides(FlowSpec):
         from helpers.forecasting import generate_seasonal_naive_forecast
 
         # Populate up_to_as_of_datetime with training data up to the as_of_datetime
-        as_of_dt = datetime.fromisoformat(
-            self.cfg.as_of_datetime.replace("Z", "+00:00")
-        )
+        as_of_dt = datetime.fromisoformat(self.cfg.as_of_datetime.replace("Z", "+00:00"))
 
         up_to_as_of_datetime = self.training_data_df[
-            pd.to_datetime(self.training_data_df[["year", "month", "day", "hour"]])
-            <= as_of_dt
+            pd.to_datetime(self.training_data_df[["year", "month", "day", "hour"]]) <= as_of_dt
         ].copy()
 
         self.seasonal_forecast = generate_seasonal_naive_forecast(
@@ -213,12 +206,8 @@ class ForecastNumberOfYellowTaxiRides(FlowSpec):
     @step
     def end(self):
         print("Forecast pipeline completed!")
-        print(
-            f"Training data preparation: {self.training_data_df.shape} training records"
-        )
-        print(
-            f"Seasonal naive forecast: {self.seasonal_forecast.shape} forecasts generated"
-        )
+        print(f"Training data preparation: {self.training_data_df.shape} training records")
+        print(f"Seasonal naive forecast: {self.seasonal_forecast.shape} forecasts generated")
 
         # Show sample forecast data if available
         if not self.seasonal_forecast.empty:

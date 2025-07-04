@@ -11,6 +11,7 @@ from pulumi import automation as auto
 import os
 
 from pathlib import Path
+
 THIS_DIR = Path(__file__).parent
 
 # disable encryption for Pulumi since the state and secrets will only
@@ -31,15 +32,14 @@ PULUMI_STACK_NAME = os.environ["PULUMI_STACK_NAME"]
 # Check environment variable to determine whether to create or destroy the stack
 STACK_ACTION = os.environ.get("STACK_ACTION", "up").lower()
 
+
 def pulumi_program():
     # The first argument is the Pulumi resource name, the second is the bucket name property
     bucket = aws.s3.Bucket(resource_name="datalake-bucket", bucket=S3_BUCKET_NAME, force_destroy=True)
-    glue_db = aws.glue.CatalogDatabase(
-        resource_name="glue-db",
-        name=GLUE_DATABASE_NAME
-    )
+    glue_db = aws.glue.CatalogDatabase(resource_name="glue-db", name=GLUE_DATABASE_NAME)
     pulumi.export("bucket_name", bucket.id)
     pulumi.export("glue_database_name", glue_db.name)
+
 
 stack = auto.create_or_select_stack(
     stack_name=PULUMI_STACK_NAME,
