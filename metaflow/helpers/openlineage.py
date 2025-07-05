@@ -11,13 +11,14 @@ step... so how do we account for this?
 import functools
 import inspect
 import os
+import subprocess
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Callable, Dict, Optional
 
 from openlineage.client import OpenLineageClient
 from openlineage.client.facet import ParentRunFacet
-from openlineage.client.facet_v2 import processing_engine_run
+from openlineage.client.facet_v2 import processing_engine_run, source_code_job, source_code_location_job
 from openlineage.client.run import Job, Run, RunEvent, RunState
 from openlineage.client.uuid import generate_new_uuid
 
@@ -105,8 +106,9 @@ def openlineage(func: Callable) -> Callable:
         # Store step job and run in singleton
         FLOW_LINEAGE_SINGLETON.steps[step_name] = StepContext(job=step_job, run=step_run)
 
-        # Log source code facet
+        # Log source code and source code location facets
         _log_source_code_facet(func, step_job)
+        # _log_source_code_location_facet(func, step_job)
         _emit_run_event(client, RunState.START, step_job, step_run)
 
         try:
@@ -160,10 +162,9 @@ def _create_step_job_and_run(flow_name: str, step_name: str, step_run_id: str, f
         runId=step_run_id,
         facets={
             "parent": parent_facet,
-            "processing_engine": _create_processing_engine_facet(name="sagemaker", version="3.11.4"),
+            "processing_engine": _create_processing_engine_facet(name="python", version="3.11.4"),
         },
     )
-
     return job, run
 
 
@@ -174,7 +175,7 @@ def _create_flow_job_and_run(flow_name: str, run_id: str) -> tuple[Job, Run]:
     run = Run(
         runId=run_id,
         facets={
-            "processing_engine": _create_processing_engine_facet(name="sagemaker", version="3.11.4"),
+            "processing_engine": _create_processing_engine_facet(name="python", version="3.11.4"),
         },
     )
     return job, run
@@ -197,11 +198,68 @@ def _log_source_code_facet(func: Callable, job: Job) -> None:
     """Add source code facet to the job."""
     try:
         source_code = inspect.getsource(func)
-        job.facets["sourceCode"] = {
-            "_producer": "metaflow-openlineage-extension",
-            "_schemaURL": "https://openlineage.io/spec/facets/1-0-1/SourceCodeJobFacet.json",
-            "language": "python",
-            "source": source_code,
-        }
+        job.facets["sourceCode"] = source_code_job.SourceCodeJobFacet(
+            language="python",
+            sourceCode=source_code
+        )
     except Exception as e:
         print(f"Could not extract source code for {func.__name__}: {e}")
+
+
+def _log_source_code_location_facet(func: Callable, job: Job) -> None:
+    """Add source code location facet to the job using proper OpenLineage client class."""
+    try:
+        # Get git information
+        try:
+            # Get git repository URL
+            repo_url = subprocess.check_output(
+                ["git", "config", "--get", "remote.origin.url"], 
+                cwd=os.getcwd(), 
+                text=True
+            ).strip()
+            
+            # Get current commit hash
+            commit_hash = subprocess.check_output(
+                ["git", "rev-parse", "HEAD"], 
+                cwd=os.getcwd(), 
+                text=True
+            ).strip()
+            
+            # Get current branch
+            try:
+                branch = subprocess.check_output(
+                    ["git", "rev-parse", "--abbrev-ref", "HEAD"], 
+                    cwd=os.getcwd(), 
+                    text=True
+                ).strip()
+            except subprocess.CalledProcessError:
+                branch = None
+            
+            # Get file path relative to repo root
+            try:
+                file_path = inspect.getfile(func)
+                repo_root = subprocess.check_output(
+                    ["git", "rev-parse", "--show-toplevel"], 
+                    cwd=os.getcwd(), 
+                    text=True
+                ).strip()
+                relative_path = os.path.relpath(file_path, repo_root)
+            except (OSError, subprocess.CalledProcessError):
+                relative_path = None
+            
+            # Create source code location facet
+            job.facets["sourceCodeLocation"] = source_code_location_job.SourceCodeLocationJobFacet(
+                type="git",
+                url=f"{repo_url}/blob/{commit_hash}/{relative_path}" if relative_path else repo_url,
+                repoUrl=repo_url,
+                path=relative_path,
+                version=commit_hash,
+                branch=branch
+            )
+            
+        except subprocess.CalledProcessError:
+            # Not in a git repository or git not available
+            print(f"Could not extract git information for {func.__name__}: not in a git repository or git not available")
+            
+    except Exception as e:
+        print(f"Could not extract source code location for {func.__name__}: {e}")
