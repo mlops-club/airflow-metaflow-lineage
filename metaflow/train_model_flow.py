@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 import yaml
+from helpers.openlineage import openlineage
 from pydantic import BaseModel, Field
 
 from metaflow import Config, FlowSpec, current, step
@@ -34,10 +35,12 @@ class ForecastNumberOfYellowTaxiRides(FlowSpec):
         parser=config_parser,
     )  # type: ignore
 
+    @openlineage
     @step
     def start(self):
         self.next(self.compute_actuals, self.create_forecast_table)
 
+    @openlineage
     @step
     def compute_actuals(self):
         from helpers.athena import execute_query
@@ -91,6 +94,7 @@ class ForecastNumberOfYellowTaxiRides(FlowSpec):
 
         self.next(self.prepare_training_data)
 
+    @openlineage
     @step
     def create_forecast_table(self):
         from helpers.athena import execute_query
@@ -131,6 +135,7 @@ class ForecastNumberOfYellowTaxiRides(FlowSpec):
 
         self.next(self.prepare_training_data)
 
+    @openlineage
     @step
     def prepare_training_data(self, inputs):
         from helpers.athena import query_pandas_from_athena
@@ -150,11 +155,13 @@ class ForecastNumberOfYellowTaxiRides(FlowSpec):
 
         self.next(self.train_forecasting_model)
 
+    @openlineage
     @step
     def train_forecasting_model(self):
         # this is a no-op until we implement a model beyond the "seasonal naive" baseline
         self.next(self.predict_forecast)
 
+    @openlineage
     @step
     def predict_forecast(self):
         """
@@ -178,6 +185,7 @@ class ForecastNumberOfYellowTaxiRides(FlowSpec):
         )
         self.next(self.write_forecasts_to_table)
 
+    @openlineage
     @step
     def write_forecasts_to_table(self):
         # TODO: move this step to a separate inference flow that does more extensive testing and/or runs inference
@@ -203,6 +211,7 @@ class ForecastNumberOfYellowTaxiRides(FlowSpec):
 
         self.next(self.end)
 
+    @openlineage
     @step
     def end(self):
         print("Forecast pipeline completed!")

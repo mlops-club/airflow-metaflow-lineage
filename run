@@ -9,6 +9,7 @@ set -ex
 
 export AWS_PROFILE=sandbox
 export AWS_REGION=us-east-1
+export AWS_DEFAULT_REGION=${AWS_REGION}
 
 # aws account id/hash used to make a unique, but consistent bucket name
 export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)

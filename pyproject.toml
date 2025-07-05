@@ -67,6 +67,10 @@ ignore = [
     "D107", # Missing docstring in `__init__`
     "D203", # incorrect-blank-line-before-class
     "D100", # undocumented-public-module
+    "D101", # Missing docstring in public class
+    "D102", # Missing docstring in public method
+    "D202", # No blank lines allowed after function docstring
+    "D205", # 1 blank line required between summary line and description
     "D212", # multi-line-summary-first-line
     "D400", # first line should end with a period
     "D401", # first line should be in imperative mood
@@ -78,6 +82,7 @@ ignore = [
     # `with` statement variable `tmp_dir` overwritten by assignment target, eg: tests/unit_tests/components/metaflow_project/test__metaflow_project_.py:17:9
     "PLW2901",
     "PLC0415", # import should be at the top level of a file
+    "PLR0913", # Too many arguments in function definition
 ]
 [tool.ruff.lint.pydocstyle]
 convention = "google"
@@ -90,36 +95,38 @@ executor.type = "uv"
 help = "Remove all Artifacts"
 shell = """
 rm -rf dist build coverage.xml test-reports sample/ tests/cookiecutter*json
-    find . \\
-      -type d \\
-      \\( \\
-        -name "*cache*" \\
-        -o -name "*.dist-info" \\
-        -o -name "*.egg-info" \\
-        -o -name "*htmlcov" \\
-        -o -name "*.metaflow" \\
-        -o -name "*.metaflow.s3" \\
-        -o -name "*.mypy_cache" \\
-        -o -name "*.pytest_cache" \\
-        -o -name "*.ruff_cache" \\
-        -o -name "*__pycache__" \\
-      \\) \\
-      -not -path "*env/*" \\
-      -not -path "*venv/*" \\
-      -not -path "*/.venv/*" \\
-      -not -path "*/node_modules/*" \\
-      -exec rm -rf {} + 2>/dev/null || true
+rm -rf "./airflow/logs/" "./airflow/airflow.db" "./airflow/airflow.cfg"
 
-    find . \\
-      -type f \\
-      \\( \\
-        -name "*.pyc" \\
-        -o -name "*.DS_Store" \\
-        -o -name "*.coverage*" \\
-      \\) \\
-      -not -path "*env/*" \\
-      -not -path "*venv/*" \\
-      -not -path "*/.venv/*" \\
-      -not -path "*/node_modules/*" \\
-      -exec rm -f {} + 2>/dev/null || true
+find . \\
+    -type d \\
+    \\( \\
+    -name "*cache*" \\
+    -o -name "*.dist-info" \\
+    -o -name "*.egg-info" \\
+    -o -name "*htmlcov" \\
+    -o -name "*.metaflow" \\
+    -o -name "*.metaflow.s3" \\
+    -o -name "*.mypy_cache" \\
+    -o -name "*.pytest_cache" \\
+    -o -name "*.ruff_cache" \\
+    -o -name "*__pycache__" \\
+    \\) \\
+    -not -path "*env/*" \\
+    -not -path "*venv/*" \\
+    -not -path "*/.venv/*" \\
+    -not -path "*/node_modules/*" \\
+    -exec rm -rf {} + 2>/dev/null || true
+
+find . \\
+    -type f \\
+    \\( \\
+    -name "*.pyc" \\
+    -o -name "*.DS_Store" \\
+    -o -name "*.coverage*" \\
+    \\) \\
+    -not -path "*env/*" \\
+    -not -path "*venv/*" \\
+    -not -path "*/.venv/*" \\
+    -not -path "*/node_modules/*" \\
+    -exec rm -f {} + 2>/dev/null || true
 """
