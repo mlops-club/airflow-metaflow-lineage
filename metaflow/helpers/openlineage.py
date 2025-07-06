@@ -12,6 +12,7 @@ import functools
 import inspect
 import os
 import subprocess
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Callable, Dict, Optional
@@ -82,23 +83,30 @@ def openlineage(func: Callable) -> Callable:
         flow_name = self.__class__.__name__
         step_name = func.__name__
 
-        # Generate flow run ID only once for the entire flow (on start step)
+        # Use Metaflow's current.run_id as the flow run ID for consistency across all steps
+        # Convert Metaflow's run_id (which is a number) to a deterministic UUID
+        flow_run_id = str(uuid.uuid5(uuid.NAMESPACE_OID, current.run_id))
+
+        # Create flow job and run if not already created
         if step_name == "start":
-            flow_run_id = str(generate_new_uuid())
             flow_job, flow_run = _create_flow_job_and_run(flow_name, flow_run_id)
+
             # Store flow job and run in singleton
             FLOW_LINEAGE_SINGLETON.flow_job = flow_job
             FLOW_LINEAGE_SINGLETON.flow_run = flow_run
+
+            # Emit START event for the flow
             _emit_run_event(client, RunState.START, flow_job, flow_run)
-        # Use existing flow run ID from singleton
-        elif FLOW_LINEAGE_SINGLETON.flow_run:
-            flow_run_id = FLOW_LINEAGE_SINGLETON.flow_run.runId
-        else:
-            # Fallback if start step was skipped (e.g., resume)
-            flow_run_id = str(generate_new_uuid())
-            flow_job, flow_run = _create_flow_job_and_run(flow_name, flow_run_id)
-            FLOW_LINEAGE_SINGLETON.flow_job = flow_job
-            FLOW_LINEAGE_SINGLETON.flow_run = flow_run
+
+        # TEMPORARILY commenting out the fallback logic
+        # if not FLOW_LINEAGE_SINGLETON.flow_run:
+        #     # Fallback if start step was skipped (e.g., resume)
+        #     flow_job, flow_run = _create_flow_job_and_run(flow_name, flow_run_id)
+        #     FLOW_LINEAGE_SINGLETON.flow_job = flow_job
+        #     FLOW_LINEAGE_SINGLETON.flow_run = flow_run
+
+        #     # Emit START event for the flow
+        #     _emit_run_event(client, RunState.START, flow_job, flow_run)
 
         step_run_id = str(generate_new_uuid())
         step_job, step_run = _create_step_job_and_run(flow_name, step_name, step_run_id, flow_run_id)
@@ -109,9 +117,10 @@ def openlineage(func: Callable) -> Callable:
         # Log source code and source code location facets
         _log_source_code_facet(func, step_job)
         # _log_source_code_location_facet(func, step_job)
-        _emit_run_event(client, RunState.START, step_job, step_run)
 
         try:
+            _emit_run_event(client, RunState.START, step_job, step_run)
+
             # Execute the original step function
             result = func(self, *args, **kwargs)
 
@@ -119,10 +128,10 @@ def openlineage(func: Callable) -> Callable:
 
             # Emit COMPLETE events for 'end' step (both flow and step level)
             if step_name == "end":
-                if FLOW_LINEAGE_SINGLETON.flow_job and FLOW_LINEAGE_SINGLETON.flow_run:
-                    _emit_run_event(
-                        client, RunState.COMPLETE, FLOW_LINEAGE_SINGLETON.flow_job, FLOW_LINEAGE_SINGLETON.flow_run
-                    )
+                # if FLOW_LINEAGE_SINGLETON.flow_job and FLOW_LINEAGE_SINGLETON.flow_run:
+                _emit_run_event(
+                    client, RunState.COMPLETE, FLOW_LINEAGE_SINGLETON.flow_job, FLOW_LINEAGE_SINGLETON.flow_run
+                )
 
             return result
         except Exception:
@@ -154,7 +163,7 @@ def _create_step_job_and_run(flow_name: str, step_name: str, step_run_id: str, f
     # Create parent facet for the step
     parent_facet = ParentRunFacet(
         run={"runId": flow_run_id},
-        job={"namespace": DEFAULT_NAMESPACE, "name": flow_name}
+        job={"namespace": DEFAULT_NAMESPACE, "name": flow_name},
     )
 
     job = Job(namespace=DEFAULT_NAMESPACE, name=job_name)
@@ -162,7 +171,7 @@ def _create_step_job_and_run(flow_name: str, step_name: str, step_run_id: str, f
         runId=step_run_id,
         facets={
             "parent": parent_facet,
-            "processing_engine": _create_processing_engine_facet(name="python", version="3.11.4"),
+            "processing_engine": _create_processing_engine_facet(name="sagemaker", version="1.0.0"),
         },
     )
     return job, run
@@ -175,7 +184,7 @@ def _create_flow_job_and_run(flow_name: str, run_id: str) -> tuple[Job, Run]:
     run = Run(
         runId=run_id,
         facets={
-            "processing_engine": _create_processing_engine_facet(name="python", version="3.11.4"),
+            "processing_engine": _create_processing_engine_facet(name="sagemaker", version="1.0.0"),
         },
     )
     return job, run
@@ -188,7 +197,7 @@ def _emit_run_event(client: OpenLineageClient, event_type: RunState, job: Job, r
         eventTime=datetime.now(timezone.utc).isoformat(),
         run=run,
         job=job,
-        producer="https://github.com/OpenLineage/OpenLineage/tree/1.34.0/integration/metaflow",
+        producer="https://github.com/OpenLineage/OpenLineage/tree/1.34.0/integration/sagemaker",
     )
     client.emit(event)
     print(f"Emitted OpenLineage {event_type} event for job '{job.name}'")
@@ -198,10 +207,7 @@ def _log_source_code_facet(func: Callable, job: Job) -> None:
     """Add source code facet to the job."""
     try:
         source_code = inspect.getsource(func)
-        job.facets["sourceCode"] = source_code_job.SourceCodeJobFacet(
-            language="python",
-            sourceCode=source_code
-        )
+        job.facets["sourceCode"] = source_code_job.SourceCodeJobFacet(language="python", sourceCode=source_code)
     except Exception as e:
         print(f"Could not extract source code for {func.__name__}: {e}")
 
@@ -213,40 +219,30 @@ def _log_source_code_location_facet(func: Callable, job: Job) -> None:
         try:
             # Get git repository URL
             repo_url = subprocess.check_output(
-                ["git", "config", "--get", "remote.origin.url"], 
-                cwd=os.getcwd(), 
-                text=True
+                ["git", "config", "--get", "remote.origin.url"], cwd=os.getcwd(), text=True
             ).strip()
-            
+
             # Get current commit hash
-            commit_hash = subprocess.check_output(
-                ["git", "rev-parse", "HEAD"], 
-                cwd=os.getcwd(), 
-                text=True
-            ).strip()
-            
+            commit_hash = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=os.getcwd(), text=True).strip()
+
             # Get current branch
             try:
                 branch = subprocess.check_output(
-                    ["git", "rev-parse", "--abbrev-ref", "HEAD"], 
-                    cwd=os.getcwd(), 
-                    text=True
+                    ["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=os.getcwd(), text=True
                 ).strip()
             except subprocess.CalledProcessError:
                 branch = None
-            
+
             # Get file path relative to repo root
             try:
                 file_path = inspect.getfile(func)
                 repo_root = subprocess.check_output(
-                    ["git", "rev-parse", "--show-toplevel"], 
-                    cwd=os.getcwd(), 
-                    text=True
+                    ["git", "rev-parse", "--show-toplevel"], cwd=os.getcwd(), text=True
                 ).strip()
                 relative_path = os.path.relpath(file_path, repo_root)
             except (OSError, subprocess.CalledProcessError):
                 relative_path = None
-            
+
             # Create source code location facet
             job.facets["sourceCodeLocation"] = source_code_location_job.SourceCodeLocationJobFacet(
                 type="git",
@@ -254,12 +250,14 @@ def _log_source_code_location_facet(func: Callable, job: Job) -> None:
                 repoUrl=repo_url,
                 path=relative_path,
                 version=commit_hash,
-                branch=branch
+                branch=branch,
             )
-            
+
         except subprocess.CalledProcessError:
             # Not in a git repository or git not available
-            print(f"Could not extract git information for {func.__name__}: not in a git repository or git not available")
-            
+            print(
+                f"Could not extract git information for {func.__name__}: not in a git repository or git not available"
+            )
+
     except Exception as e:
         print(f"Could not extract source code location for {func.__name__}: {e}")

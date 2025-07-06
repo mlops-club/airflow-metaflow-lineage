@@ -1,4 +1,4 @@
-import logging
+# import logging
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 from urllib.parse import urlparse
@@ -16,7 +16,7 @@ from openlineage.client.facet_v2 import (
 
 from .sqlparser import LineageInfo, SQLParser
 
-logger = logging.getLogger(__name__)
+# logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -178,5 +178,5 @@ def get_openlineage_dataset(
         )
 
     except Exception as e:
-        logger.error("Cannot retrieve table metadata from Athena.Client. %s", e)
+        print(f"Cannot retrieve table metadata from Athena.Client. {e}")
         return None

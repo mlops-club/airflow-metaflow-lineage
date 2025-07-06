@@ -9,11 +9,12 @@ import boto3
 import pandas as pd
 from jinja2 import DebugUndefined, Template
 from openlineage.client.facet import ParentRunFacet
+from openlineage.client.facet_v2 import sql_job
 from openlineage.client.run import Job, Run, RunEvent, RunState
 from openlineage.client.uuid import generate_new_uuid
 from rich import print
 
-from .openlineage import _create_openlineage_client, get_current_step_context
+from .openlineage import _create_openlineage_client, _create_processing_engine_facet, get_current_step_context
 from .sql_openlineage.sqlparser import LineageInfo
 
 
@@ -72,6 +73,10 @@ def query_pandas_from_athena(
     if s3_output_location is None:
         s3_output_location = f"s3://{datalake_s3_bucket}/athena-results/"
 
+    # Emit OpenLineage START event for SQL query
+    query_run_id = str(generate_new_uuid())
+    emit_openlineage_start_event(job_name, sql_query, query_run_id)
+
     # Execute query using AWS Data Wrangler
     df = wr.athena.read_sql_query(
         sql=sql_query,
@@ -117,8 +122,7 @@ def query_pandas_from_athena(
         print(f"Output datasets: {[ds.name for ds in lineage_info.outputs]}")
         print("=" * 50)
 
-        # Emit OpenLineage COMPLETE event (generate run_id since we don't have START event here)
-        query_run_id = str(generate_new_uuid())
+        # Emit OpenLineage COMPLETE event using the same run_id as the START event
         emit_openlineage_complete_event(lineage_info, job_name, query_run_id)
 
     except Exception as e:
@@ -267,45 +271,47 @@ def emit_openlineage_start_event(job_name: str, sql_query: str, run_id: str, nam
     step_context = get_current_step_context()
 
     # Create job facets with SQL
-    job_facets = {
-        "sql": {
-            "_producer": "metaflow-openlineage-extension",
-            "_schemaURL": "https://openlineage.io/spec/facets/1-0-1/SQLJobFacet.json",
-            "query": sql_query,
-        }
-    }
+    job_facets = {"sql": sql_job.SQLJobFacet(query=sql_query)}
+    # job_facets = {
+    #     "sql": {
+    #         "_producer": "metaflow-openlineage-extension",
+    #         "_schemaURL": "https://openlineage.io/spec/facets/1-0-1/SQLJobFacet.json",
+    #         "query": sql_query,
+    #     }
+    # }
 
     # Create run facets with parent and root references
     run_facets = {}
+    # run_facets["processing_engine"] = _create_processing_engine_facet(name="sagemaker", version="1.0.0")
     if step_context:
         # Get flow context for root reference
         from .openlineage import FLOW_LINEAGE_SINGLETON
 
         if FLOW_LINEAGE_SINGLETON.flow_run and FLOW_LINEAGE_SINGLETON.flow_job:
-            # run_facets["parent"] = {
-            #     "_producer": "metaflow-openlineage-extension",
-            #     "_schemaURL": "https://openlineage.io/spec/facets/1-1-0/ParentRunFacet.json#/$defs/ParentRunFacet",
-            #     "run": {"runId": step_context.run.runId},
-            #     "job": {"namespace": step_context.job.namespace, "name": step_context.job.name},
-            #     "root": {
-            #         "run": {"runId": FLOW_LINEAGE_SINGLETON.flow_run.runId},
-            #         "job": {
-            #             "namespace": FLOW_LINEAGE_SINGLETON.flow_job.namespace,
-            #             "name": FLOW_LINEAGE_SINGLETON.flow_job.name,
-            #         },
-            #     },
-            # }
-            run_facets["parent"] = ParentRunFacet(
-                run={"runId": step_context.run.runId},
-                job={"namespace": step_context.job.namespace, "name": step_context.job.name},
-                # root={
-                #     "run": {"runId": FLOW_LINEAGE_SINGLETON.flow_run.runId},
-                #     "job": {
-                #         "namespace": FLOW_LINEAGE_SINGLETON.flow_job.namespace,
-                #         "name": FLOW_LINEAGE_SINGLETON.flow_job.name,
-                #     },
-                # },
-            )
+            run_facets["parent"] = {
+                # "_producer": "metaflow-openlineage-extension",
+                # "_schemaURL": "https://openlineage.io/spec/facets/1-1-0/ParentRunFacet.json#/$defs/ParentRunFacet",
+                "job": {"namespace": step_context.job.namespace, "name": step_context.job.name},
+                "run": {"runId": step_context.run.runId},
+                "root": {
+                    "job": {
+                        "namespace": FLOW_LINEAGE_SINGLETON.flow_job.namespace,
+                        "name": FLOW_LINEAGE_SINGLETON.flow_job.name,
+                    },
+                    "run": {"runId": FLOW_LINEAGE_SINGLETON.flow_run.runId},
+                },
+            }
+            # run_facets["parent"] = ParentRunFacet(
+            #     run={"runId": step_context.run.runId},
+            #     job={"namespace": step_context.job.namespace, "name": step_context.job.name},
+            #     # root={
+            #     #     "run": {"runId": FLOW_LINEAGE_SINGLETON.flow_run.runId},
+            #     #     "job": {
+            #     #         "namespace": FLOW_LINEAGE_SINGLETON.flow_job.namespace,
+            #     #         "name": FLOW_LINEAGE_SINGLETON.flow_job.name,
+            #     #     },
+            #     # },
+            # )
 
     # Create job and run objects
     job = Job(namespace=namespace, name=job_name, facets=job_facets)
@@ -317,7 +323,7 @@ def emit_openlineage_start_event(job_name: str, sql_query: str, run_id: str, nam
         eventTime=datetime.now(timezone.utc).isoformat(),
         run=run,
         job=job,
-        producer="https://github.com/OpenLineage/OpenLineage/tree/1.34.0/integration/metaflow",
+        producer="https://github.com/OpenLineage/OpenLineage/tree/1.34.0/integration/sagemaker",
     )
 
     client.emit(event)
@@ -377,7 +383,7 @@ def emit_openlineage_complete_event(
         job=job,
         inputs=run_inputs if run_inputs else None,
         outputs=run_outputs if run_outputs else None,
-        producer="https://github.com/OpenLineage/OpenLineage/tree/1.34.0/integration/metaflow",
+        producer="https://github.com/OpenLineage/OpenLineage/tree/1.34.0/integration/sagemaker",
     )
 
     client.emit(event)

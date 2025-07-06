@@ -34,8 +34,8 @@ def get_processing_engine_facet() -> dict[str, processing_engine_run.ProcessingE
 
     return {
         "processing_engine": processing_engine_run.ProcessingEngineRunFacet(
-            version="2",  # AIRFLOW_VERSION,
-            name="Metaflow",
+            version="1.0.0",  # AIRFLOW_VERSION,
+            name="sagemaker",
             openlineageAdapterVersion=OPENLINEAGE_PROVIDER_VERSION,
         )
     }
