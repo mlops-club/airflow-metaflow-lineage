@@ -15,12 +15,13 @@ import subprocess
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Callable, Dict, Optional
+from typing import Callable, Dict, List, Optional
 
+import pandas as pd
 from openlineage.client import OpenLineageClient
 from openlineage.client.facet import ParentRunFacet
 from openlineage.client.facet_v2 import processing_engine_run, source_code_job, source_code_location_job
-from openlineage.client.run import Job, Run, RunEvent, RunState
+from openlineage.client.run import Dataset, Job, Run, RunEvent, RunState
 from openlineage.client.uuid import generate_new_uuid
 
 from metaflow import current
@@ -259,3 +260,177 @@ def _log_source_code_location_facet(func: Callable, job: Job) -> None:
 
     except Exception as e:
         print(f"Could not extract source code location for {func.__name__}: {e}")
+
+
+def emit_model_lineage_event(
+    inputs: List[Dict],
+    outputs: List[Dict],
+    job_name: str,
+    run_id: Optional[str] = None,
+) -> None:
+    """
+    Emit OpenLineage event for model training/prediction operations.
+
+    Args:
+        inputs: List of input dataset specifications
+        outputs: List of output dataset specifications
+        job_name: Name for the job
+        run_id: Optional run ID, will generate if not provided
+    """
+    client = _create_openlineage_client()
+
+    if not run_id:
+        run_id = str(generate_new_uuid())
+
+    # Get current step context for parent information
+    step_context = get_current_step_context()  # Create job and run
+    job = Job(namespace=DEFAULT_NAMESPACE, name=job_name)
+
+    run_facets: Dict = {"processing_engine": _create_processing_engine_facet(name="sagemaker", version="1.0.0")}
+
+    # Add parent facet if we have step context
+    if step_context:
+        parent_facet = ParentRunFacet(
+            run={"runId": step_context.run.runId},
+            job={"namespace": step_context.job.namespace, "name": step_context.job.name},
+        )
+        run_facets["parent"] = parent_facet
+
+    run = Run(runId=run_id, facets=run_facets)
+
+    # Convert input and output specifications to Dataset objects
+    input_datasets = []
+    for input_spec in inputs:
+        input_datasets.append(
+            Dataset(
+                namespace=input_spec.get("namespace", DEFAULT_NAMESPACE),
+                name=input_spec["name"],
+                facets=input_spec.get("facets", {}),
+            )
+        )
+
+    output_datasets = []
+    for output_spec in outputs:
+        output_datasets.append(
+            Dataset(
+                namespace=output_spec.get("namespace", DEFAULT_NAMESPACE),
+                name=output_spec["name"],
+                facets=output_spec.get("facets", {}),
+            )
+        )
+
+    # Create and emit the event
+    event = RunEvent(
+        eventType=RunState.COMPLETE,
+        eventTime=datetime.now(timezone.utc).isoformat(),
+        run=run,
+        job=job,
+        inputs=input_datasets if input_datasets else None,
+        outputs=output_datasets if output_datasets else None,
+        producer="https://github.com/OpenLineage/OpenLineage/tree/1.34.0/integration/sagemaker",
+    )
+
+    from pathlib import Path
+
+    from openlineage.client.serde import Serde
+
+    Path("openlineage-events").mkdir(parents=True, exist_ok=True)
+    with open(f"openlineage-events/{job_name}_{run_id}.json", "w") as f:
+        f.write(Serde.to_json(event))
+
+    client.emit(event)
+    print(f"Emitted model lineage event for '{job_name}' with {len(inputs)} inputs and {len(outputs)} outputs")
+
+
+def create_dataframe_facets(df: pd.DataFrame, metadata: Optional[Dict] = None) -> Dict:
+    """
+    Create facets for a pandas DataFrame.
+
+    Args:
+        df: The pandas DataFrame
+        metadata: Optional additional metadata
+
+    Returns:
+        Dictionary of facets describing the DataFrame
+    """
+    facets = {
+        "dataFrame": {
+            "shape": list(df.shape),
+            "columns": list(df.columns),
+            "dtypes": {col: str(dtype) for col, dtype in df.dtypes.items()},
+            "memory_usage_mb": round(df.memory_usage(deep=True).sum() / 1024 / 1024, 2),
+            "index_name": df.index.name,
+            "is_empty": df.empty,
+        }
+    }
+
+    # Add data quality information
+    if not df.empty:
+        facets["dataQuality"] = {
+            "total_rows": len(df),
+            "missing_values": df.isnull().sum().sum(),
+            "duplicate_rows": df.duplicated().sum(),
+            "completeness": round(1 - (df.isnull().sum().sum() / (len(df) * len(df.columns))), 3),
+        }
+
+    # Add temporal information if datetime columns exist
+    datetime_cols = df.select_dtypes(include=["datetime64"]).columns
+    if not datetime_cols.empty:
+        for col in datetime_cols:
+            facets["temporalCoverage"] = {
+                "column": col,
+                "start": df[col].min().isoformat() if pd.notna(df[col].min()) else None,
+                "end": df[col].max().isoformat() if pd.notna(df[col].max()) else None,
+                "span_days": (df[col].max() - df[col].min()).days
+                if pd.notna(df[col].min()) and pd.notna(df[col].max())
+                else None,
+            }
+            break  # Just use the first datetime column
+
+    # Add any additional metadata
+    if metadata:
+        facets.update(metadata)
+
+    return facets
+
+
+def create_version_facet(version: str, version_type: str = "metaflow_run_id") -> Dict:
+    """
+    Create a version facet for OpenLineage datasets.
+
+    Args:
+        version: The version identifier (e.g., Metaflow run_id)
+        version_type: Type of versioning system
+
+    Returns:
+        Dictionary containing version facet
+    """
+    return {
+        "version": {
+            "_producer": "https://github.com/OpenLineage/OpenLineage/tree/1.34.0/integration/sagemaker",
+            "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/VersionDatasetFacet.json",
+            "datasetVersion": version,
+            "versionType": version_type,
+        }
+    }
+
+
+def create_datasource_facet(name: str, uri: str) -> Dict:
+    """
+    Create a dataSource facet following OpenLineage specification.
+
+    Args:
+        name: The name of the data source
+        uri: The URI of the data source
+
+    Returns:
+        Dictionary containing dataSource facet
+    """
+    return {
+        "dataSource": {
+            "_producer": "https://github.com/OpenLineage/OpenLineage/tree/1.34.0/integration/sagemaker",
+            "_schemaURL": "https://openlineage.io/spec/facets/1-0-0/DatasourceDatasetFacet.json",
+            "name": name,
+            "uri": uri,
+        }
+    }

@@ -2,8 +2,9 @@
 Forecasting helper functions for generating predictions.
 """
 
-import pandas as pd
 from datetime import timedelta
+
+import pandas as pd
 
 
 def generate_seasonal_naive_forecast(predict_horizon_hours: int, up_to_as_of_datetime: pd.DataFrame) -> pd.DataFrame:
