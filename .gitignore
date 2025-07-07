@@ -1,3 +1,6 @@
+openlineage-*/
+temp/
+**/.dag*.py
 *.metaflow
 .pulumi
 
@@ -8,6 +11,7 @@ build/
 dist/
 wheels/
 *.egg-info
+**/.DS_Store
 
 *cache*
 

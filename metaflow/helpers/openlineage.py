@@ -88,25 +88,16 @@ def openlineage(func: Callable) -> Callable:
         flow_run_id = str(uuid.uuid5(uuid.NAMESPACE_OID, current.run_id))
 
         # Create flow job and run if not already created
-        if step_name == "start":
+        if not FLOW_LINEAGE_SINGLETON.flow_job or not FLOW_LINEAGE_SINGLETON.flow_run:
             flow_job, flow_run = _create_flow_job_and_run(flow_name, flow_run_id)
 
             # Store flow job and run in singleton
             FLOW_LINEAGE_SINGLETON.flow_job = flow_job
             FLOW_LINEAGE_SINGLETON.flow_run = flow_run
 
-            # Emit START event for the flow
-            _emit_run_event(client, RunState.START, flow_job, flow_run)
-
-        # TEMPORARILY commenting out the fallback logic
-        # if not FLOW_LINEAGE_SINGLETON.flow_run:
-        #     # Fallback if start step was skipped (e.g., resume)
-        #     flow_job, flow_run = _create_flow_job_and_run(flow_name, flow_run_id)
-        #     FLOW_LINEAGE_SINGLETON.flow_job = flow_job
-        #     FLOW_LINEAGE_SINGLETON.flow_run = flow_run
-
-        #     # Emit START event for the flow
-        #     _emit_run_event(client, RunState.START, flow_job, flow_run)
+            # Emit START event for the flow at the start step
+            if step_name == "start":
+                _emit_run_event(client, RunState.START, flow_job, flow_run)
 
         step_run_id = str(generate_new_uuid())
         step_job, step_run = _create_step_job_and_run(flow_name, step_name, step_run_id, flow_run_id)
@@ -116,7 +107,7 @@ def openlineage(func: Callable) -> Callable:
 
         # Log source code and source code location facets
         _log_source_code_facet(func, step_job)
-        # _log_source_code_location_facet(func, step_job)
+        _log_source_code_location_facet(func, step_job)
 
         try:
             _emit_run_event(client, RunState.START, step_job, step_run)
@@ -148,7 +139,7 @@ def openlineage(func: Callable) -> Callable:
 
 def _create_openlineage_client() -> OpenLineageClient:
     """Initialize OpenLineage client from environment variables."""
-    return OpenLineageClient()
+    return OpenLineageClient().from_environment()
 
 
 def _create_processing_engine_facet(name: str | None, version: str) -> processing_engine_run.ProcessingEngineRunFacet:
@@ -199,6 +190,13 @@ def _emit_run_event(client: OpenLineageClient, event_type: RunState, job: Job, r
         job=job,
         producer="https://github.com/OpenLineage/OpenLineage/tree/1.34.0/integration/sagemaker",
     )
+
+    # if os.environ.get("OPENLINEAGE_DEBUG"):
+    #     from openlineage.client.serde import Serde
+    #     from rich import print_json
+
+    #     print_json(Serde.to_json(event))
+
     client.emit(event)
     print(f"Emitted OpenLineage {event_type} event for job '{job.name}'")
 
