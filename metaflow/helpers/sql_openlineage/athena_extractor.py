@@ -1,23 +1,22 @@
+# import logging
+from dataclasses import dataclass
 from typing import Dict, List, Optional
 from urllib.parse import urlparse
-import logging
-from dataclasses import dataclass
 
 from openlineage.client.event_v2 import Dataset
 from openlineage.client.facet_v2 import (
     BaseFacet,
     DatasetFacet,
-    extraction_error_run,
     external_query_run,
+    extraction_error_run,
     schema_dataset,
     sql_job,
     symlinks_dataset,
 )
 
-from .sqlparser import SQLParser, LineageInfo
+from .sqlparser import LineageInfo, SQLParser
 
-
-logger = logging.getLogger(__name__)
+# logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -31,7 +30,11 @@ class AthenaConfig:
 
 
 def extract_athena_lineage(
-    task_name: str, query: str, config: AthenaConfig, athena_client=None, query_execution_id: Optional[str] = None
+    task_name: str,
+    query: str,
+    config: AthenaConfig,
+    athena_client=None,
+    query_execution_id: Optional[str] = None,
 ) -> LineageInfo:
     """
     Extract lineage information from an Athena SQL query.
@@ -175,5 +178,5 @@ def get_openlineage_dataset(
         )
 
     except Exception as e:
-        logger.error("Cannot retrieve table metadata from Athena.Client. %s", e)
+        print(f"Cannot retrieve table metadata from Athena.Client. {e}")
         return None

@@ -1,4 +1,5 @@
 from typing import Any, Dict
+
 from openlineage.client.facet_v2 import parent_run, processing_engine_run
 from openlineage.client.utils import RedactMixin
 
@@ -33,8 +34,8 @@ def get_processing_engine_facet() -> dict[str, processing_engine_run.ProcessingE
 
     return {
         "processing_engine": processing_engine_run.ProcessingEngineRunFacet(
-            version="2",  # AIRFLOW_VERSION,
-            name="Metaflow",
+            version="1.0.0",  # AIRFLOW_VERSION,
+            name="sagemaker",
             openlineageAdapterVersion=OPENLINEAGE_PROVIDER_VERSION,
         )
     }

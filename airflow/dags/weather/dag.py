@@ -25,7 +25,7 @@ S3_DATA_LAKE_BUCKET = Variable.get("datalake-s3-bucket")
 GLUE_DATABASE = Variable.get("datalake-glue-database")
 
 STAGING_PREFIX = "staging/weather"  # within the bucket
-ATHENA_OUTPUT_LOCATION = f"s3://{S3_DATA_LAKE_BUCKET}/athena_results/"
+ATHENA_OUTPUT_LOCATION = f"s3://{S3_DATA_LAKE_BUCKET}/athena-results"
 
 N_MONTHS = 3
 TMeasurementTypes = Literal["prcp", "tavg", "tmin", "tmax"]
@@ -157,7 +157,7 @@ def make_athena_query_operator(
         task_id=task_id,
         query=query_file.read_text(),
         database=GLUE_DATABASE,
-        output_location=ATHENA_OUTPUT_LOCATION,
+        output_location=f"{ATHENA_OUTPUT_LOCATION}/{query_file.stem}",
         aws_conn_id="aws_default",
         region_name=AWS_REGION,
     )

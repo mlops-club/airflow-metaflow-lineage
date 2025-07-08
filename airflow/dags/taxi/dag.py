@@ -24,7 +24,7 @@ GLUE_DATABASE = Variable.get("datalake-glue-database")
 
 STAGING_PREFIX = "staging/yellow"  # within the bucket
 ATHENA_RESULT_BUCKET = "my-athena-query-results"  # S3 bucket for Athena query outputs
-ATHENA_OUTPUT_LOCATION = f"s3://{S3_DATA_LAKE_BUCKET}/athena_results/"
+ATHENA_OUTPUT_LOCATION = f"s3://{S3_DATA_LAKE_BUCKET}/athena-results"
 
 
 @dag(
@@ -134,7 +134,7 @@ def make_athena_query_operator(
         task_id=task_id,
         query=query_file.read_text(),
         database=GLUE_DATABASE,
-        output_location=ATHENA_OUTPUT_LOCATION,
+        output_location=f"{ATHENA_OUTPUT_LOCATION}/{query_file.stem}",
         aws_conn_id="aws_default",
         region_name=AWS_REGION,
     )

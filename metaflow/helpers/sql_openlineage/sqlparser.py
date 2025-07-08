@@ -2,13 +2,15 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable
-from typing import TypedDict, Dict, List, Optional, Any, Protocol
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional, Protocol, TypedDict
 
 import sqlparse
 from openlineage.client.event_v2 import Dataset
-from openlineage.client.facet_v2 import BaseFacet, column_lineage_dataset, extraction_error_run, sql_job
-from openlineage.common.sql import DbTableMeta, SqlMeta, parse
 from openlineage.client.facet_v2 import (
+    BaseFacet,
+    column_lineage_dataset,
+    extraction_error_run,
     nominal_time_run,
     processing_engine_run,
     schema_dataset,
@@ -16,7 +18,7 @@ from openlineage.client.facet_v2 import (
 )
 from openlineage.client.serde import Serde
 from openlineage.client.uuid import generate_new_uuid
-from datetime import datetime, timezone
+from openlineage.common.sql import DbTableMeta, SqlMeta, parse
 
 # Type aliases to replace Airflow-specific types
 TablesHierarchy = Dict[Optional[str], Dict[Optional[str], List[str]]]
@@ -63,9 +65,9 @@ class LineageInfo:
     ):
         self.job_facets = job_facets or {}
         self.run_facets = run_facets or {
-            "nominalTime": nominal_time_run.NominalTimeRunFacet(
-                nominalStartTime=datetime.now(timezone.utc).isoformat()
-            ),
+            # "nominalTime": nominal_time_run.NominalTimeRunFacet(
+            #     nominalStartTime=datetime.now(timezone.utc).isoformat()
+            # ),
             "processing_engine": processing_engine_run.ProcessingEngineRunFacet(name="sagemaker", version="1.0.0"),
         }
         self.inputs = inputs or []
