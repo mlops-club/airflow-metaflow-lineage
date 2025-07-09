@@ -18,7 +18,7 @@ metaflow = [
     "jinja2>=3.1.6",
     "metaflow>=2.15.18",
     "openlineage-integration-common>=1.34.0",
-    "openlineage-python>=1.34.0",
+    "openlineage-python[datazone]>=1.34.0",
     "openlineage-sql>=1.34.0",
     "pydantic>=2.11.7",
     "pyyaml>=6.0.2",
@@ -35,6 +35,10 @@ datahub = [
 ]
 dev = [
     "rich>=13.9.4",
+]
+cdk = [
+    "aws-cdk-lib>=2.204.0",
+    "constructs>=10.4.2",
 ]
 
 # [build-system]

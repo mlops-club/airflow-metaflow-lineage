@@ -1,0 +1,9 @@
+x-airflow-common:
+  &airflow-common
+  environment:
+    # Override OpenLineage configuration for DataZone
+    AIRFLOW__OPENLINEAGE__TRANSPORT: '{"type": "amazon_datazone_api", "domainId": "${DATAZONE_DOMAIN_ID}", "endpointOverride": "https://datazone.${AWS_REGION}.amazonaws.com"}'
+    # AIRFLOW__OPENLINEAGE__TRANSPORT__TRANSPORTS__DEFAULT_HTTP: '{}'
+    # AIRFLOW__OPENLINEAGE__TRANSPORT__TYPE: "amazon_datazone_api"
+    # AIRFLOW__OPENLINEAGE__TRANSPORT__DOMAINID: ${DATAZONE_DOMAIN_ID}
+    # AIRFLOW__OPENLINEAGE__TRANSPORT__ENDPOINTOVERRIDE: "https://datazone.${AWS_REGION}.amazonaws.com"
