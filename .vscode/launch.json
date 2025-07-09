@@ -26,7 +26,8 @@
             "env": {
                 "AWS_PROFILE": "sandbox",
             },
-            "args": ["run"]
+            "args": ["run"],
+            "justMyCode": false
         }
     ]
 }
