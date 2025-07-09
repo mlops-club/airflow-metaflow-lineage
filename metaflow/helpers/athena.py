@@ -76,7 +76,7 @@ def query_pandas_from_athena(
         sql_query = substitute_map_into_string(sql_query, ctx)
 
     if s3_output_location is None:
-        s3_output_location = f"s3://{datalake_s3_bucket}/athena-results" #/{job_name}"
+        s3_output_location = f"s3://{datalake_s3_bucket}/athena-results"  # /{job_name}"
 
     # Emit OpenLineage START event for SQL query
     query_run_id = str(generate_new_uuid())
@@ -170,7 +170,7 @@ def execute_query(
         sql_query = substitute_map_into_string(sql_query, ctx)
 
     if s3_output_location is None:
-        s3_output_location = f"s3://{datalake_s3_bucket}/athena-results" # /{job_name}"
+        s3_output_location = f"s3://{datalake_s3_bucket}/athena-results"  # /{job_name}"
 
     # Emit OpenLineage START event for SQL query
     query_run_id = str(generate_new_uuid())
@@ -379,7 +379,7 @@ def emit_openlineage_complete_event(
     # Path("openlineage-events").mkdir(parents=True, exist_ok=True)
     # with open(f"openlineage-events/{job_name}_{run_id}.json", "w") as f:
     #     f.write(Serde.to_json(event))
-    
+
     client.emit(event)
     print(
         f"Emitted OpenLineage COMPLETE event for job '{job_name}' with {len(lineage_info.inputs)} inputs and {len(lineage_info.outputs)} outputs"
