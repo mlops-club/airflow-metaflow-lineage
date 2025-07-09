@@ -23,20 +23,10 @@ x-airflow-common:
     # AIRFLOW__LOGGING__TRIGGER_LOG_SERVER_PORT: ${AIRFLOW__LOGGING__TRIGGER_LOG_SERVER_PORT}
     # this points to Marquez (api port 9000)
     # AIRFLOW__OPENLINEAGE__TRANSPORT: '{"type": "console"}'
-    AIRFLOW__OPENLINEAGE__TRANSPORT__TRANSPORTS__DEFAULT_HTTP: '{"type": "http", "url": "http://host.docker.internal:${DATAHUB_MAPPED_GMS_PORT}", "endpoint": "/openapi/openlineage/api/v1/lineage"}'
-    # AIRFLOW__OPENLINEAGE__TRANSPORT__TYPE: "http"
-    # AIRFLOW__OPENLINEAGE__TRANSPORT__URL: "http://host.docker.internal:${DATAHUB_MAPPED_GMS_PORT}"
-    # AIRFLOW__OPENLINEAGE__TRANSPORT__ENDPOINT: "/openapi/openlineage/api/v1/lineage"
-
-    # AIRFLOW__OPENLINEAGE__TRANSPORT: '{"type": "amazon_datazone_api", "domainId": "${DATAZONE_DOMAIN_ID}", "endpointOverride": "https://datazone.${AWS_REGION}.amazonaws.com"}'
-    # AIRFLOW__OPENLINEAGE__TRANSPORT__TYPE: "amazon_datazone_api"
-    # AIRFLOW__OPENLINEAGE__TRANSPORT__DOMAINID: ${DATAZONE_DOMAIN_ID}
-    # AIRFLOW__OPENLINEAGE__TRANSPORT__ENDPOINTOVERRIDE: "https://datazone.${AWS_REGION}.amazonaws.com"
-    
+    AIRFLOW__OPENLINEAGE__TRANSPORT: ${OPENLINEAGE__TRANSPORT}
     AIRFLOW__DATAHUB__ENABLED: "true"
     AIRFLOW__DATAHUB__DISABLE_OPENLINEAGE_PLUGIN: "false"
     AIRFLOW__OPENLINEAGE__DISABLED: "false"
-    DATAHUB_MAPPED_GMS_PORT: ${DATAHUB_MAPPED_GMS_PORT}
   volumes:
     - ./dags:/opt/airflow/dags
     - ./logs:/opt/airflow/logs

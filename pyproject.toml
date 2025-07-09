@@ -101,10 +101,45 @@ convention = "google"
 [tool.poe]
 executor.type = "uv"
 
+# Airflow Docker tasks
+[tool.poe.tasks.airflow-docker-datahub]
+help = "Start Airflow in Docker with DataHub backend"
+cmd = "./run airflow-docker-datahub"
+
+[tool.poe.tasks.airflow-docker-datazone]
+help = "Start Airflow in Docker with Amazon DataZone backend"
+cmd = "./run airflow-docker-datazone"
+
+# DataHub Docker tasks
+[tool.poe.tasks.datahub-docker]
+help = "Start DataHub using Docker quickstart"
+cmd = "./run datahub-docker"
+
+[tool.poe.tasks.datahub-docker-stop]
+help = "Stop DataHub Docker containers"
+cmd = "./run datahub-docker-stop"
+
+[tool.poe.tasks.datahub-docker-nuke]
+help = "Stop and remove all DataHub Docker containers"
+cmd = "./run datahub-docker-nuke"
+
+# Metaflow training flow tasks
+[tool.poe.tasks.training-flow]
+help = "Run Metaflow training flow"
+cmd = "./run training-flow"
+
+[tool.poe.tasks.training-flow-datahub]
+help = "Run Metaflow training flow with DataHub backend"
+cmd = "./run training-flow-datahub"
+
+[tool.poe.tasks.training-flow-datazone]
+help = "Run Metaflow training flow with DataZone backend"
+cmd = "./run training-flow-datazone"
+
 [tool.poe.tasks.clean]
 help = "Remove all Artifacts"
 shell = """
-rm -rf dist build coverage.xml test-reports sample/ tests/cookiecutter*json
+rm -rf dist build coverage.xml test-reports cdk.out .pulumi .metaflow
 rm -rf "./airflow/logs/" "./airflow/airflow.db" "./airflow/airflow.cfg"
 
 find . \\
