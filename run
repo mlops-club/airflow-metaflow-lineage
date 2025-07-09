@@ -12,7 +12,7 @@ export AWS_REGION=us-east-1
 export AWS_DEFAULT_REGION=${AWS_REGION}
 
 # aws account id/hash used to make a unique, but consistent bucket name
-export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
+export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --profile $AWS_PROFILE --query "Account" --output text)
 export AWS_ACCOUNT_ID_HASH=$(echo -n "${AWS_ACCOUNT_ID}" | sha256sum | cut -c5-8)
 
 export S3_DATA_LAKE_BUCKET_NAME="airflow-metaflow-${AWS_ACCOUNT_ID_HASH}"
@@ -30,24 +30,134 @@ export AIRFLOW__WEBSERVER__WEB_SERVER_PORT=9090
 export AIRFLOW__LOGGING__WORKER_LOG_SERVER_PORT=9091
 export AIRFLOW__LOGGING__TRIGGER_LOG_SERVER_PORT=9092
 
-# these env vars are used by the openlineage clinet in the metaflow flows
-export OPENLINEAGE__TRANSPORT__TYPE="http"
-export OPENLINEAGE__TRANSPORT__URL="http://localhost:${DATAHUB_MAPPED_GMS_PORT}"
-export OPENLINEAGE__TRANSPORT__ENDPOINT="/openapi/openlineage/api/v1/lineage"
+
+# these env vars are used by the openlineage client in the metaflow flows
+# Common OpenLineage transport settings
 # export OPENLINEAGE__TRANSPORT__COMPRESSION="gzip" # Datahub cannot receive gzip compressed events
 export OPENLINEAGE__TRANSPORT__VERIFY="false"
 export OPENLINEAGE__TRANSPORT__TIMEOUT="30"
 export OPENLINEAGE_CLIENT_LOGGING="DEBUG"
 
-# necessary in case you already use metaflow or outerbounds;
-# makes it so your `metaflow configure` or `outerbounds configure` won't
-# conflict with this project, e.g. making boto3 not actually use the sandbox profile
-export METAFLOW_HOME="${THIS_DIR}/.metaflow"
-
-# export OPENLINEAGE_DEBUG="1"
-
 THIS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
+
+# Set the Metaflow to use local environment
+export METAFLOW_HOME="$THIS_DIR/.metaflow"
+
+# these env vars are used by the openlineage client in the metaflow flows
+function set-datazone-env-vars() {
+    # For endpoint override, either use the FIPS endpoint or the regular endpoint
+    # datazone.us-east-1.api.aws    OR    datazone-fips.us-east-1.amazonaws.com (for me the fips worked)
+
+    # OpenLineage Docs: https://openlineage.io/docs/client/python/#amazon-datazone
+    # AWS Docs: https://docs.aws.amazon.com/general/latest/gr/datazone.html#datazone_region
+
+    export DATAZONE_DOMAIN_ID="dzd_6tb8s93jkqnmnb"
+    export OPENLINEAGE__TRANSPORT='{"type": "amazon_datazone_api", "domainId": "'${DATAZONE_DOMAIN_ID}'", "endpointOverride": "https://datazone-fips.'${AWS_REGION}'.amazonaws.com"}'
+    # export OPENLINEAGE__TRANSPORT__TYPE="amazon_datazone_api"
+    # export OPENLINEAGE__TRANSPORT__DOMAINID="${DATAZONE_DOMAIN_ID}"
+    # export OPENLINEAGE__TRANSPORT__ENDPOINTOVERRIDE="https://datazone.${AWS_REGION}.amazonaws.com"
+}
+
+# https://github.com/aws-samples/sample-openlineage-proxy-for-amazon-sagemaker-governance/tree/main
+# export OPENLINEAGE__TRANSPORT__URL="https://8tg6hllo5g.execute-api.us-east-1.amazonaws.com"
+# export OPENLINEAGE__TRANSPORT__ENDPOINT="/post-lineage-event"
+
+function set-datahub-env-vars() {
+    # For Airflow running in Docker, we need to use host.docker.internal to access the host machine
+    # For metaflow to run locally we need to use localhost instead of host.docker.internal
+    HOSTNAME="${HOSTNAME:-localhost}"
+    export OPENLINEAGE__TRANSPORT='{"type": "http", "url": "http://'${HOSTNAME}':'${DATAHUB_MAPPED_GMS_PORT}'", "endpoint": "/openapi/openlineage/api/v1/lineage"}'
+    # export OPENLINEAGE__TRANSPORT__TYPE="http"
+    # export OPENLINEAGE__TRANSPORT__URL="http://localhost:${DATAHUB_MAPPED_GMS_PORT}"
+    # export OPENLINEAGE__TRANSPORT__ENDPOINT="/openapi/openlineage/api/v1/lineage"
+}
+
+function airflow-docker-datahub() {
+    HOSTNAME="host.docker.internal"
+    set-datahub-env-vars
+    airflow-docker
+}
+
+function airflow-docker-datazone() {
+    set-datazone-env-vars
+    airflow-docker
+}
+
+function airflow-docker() {
+    pushd "${THIS_DIR}/airflow"
+    docker compose up --build
+    popd
+}
+
+
+############ DataHub Docker ##########
+
+function datahub-docker() {
+    uv run datahub docker quickstart
+    # uv run datahub docker quickstart --stop   # stops the datahub docker containers
+    # uv run datahub nuke                       # stops and removes all datahub docker containers
+}
+
+function datahub-docker-stop() {
+    # Stops the DataHub docker containers
+    uv run datahub docker quickstart --stop
+}
+
+function datahub-docker-nuke() {
+    # Stops and removes all DataHub docker containers
+    uv run datahub nuke
+}
+
+
+########## Metaflow ##########
+
+function training-flow-datahub() {
+    set-datahub-env-vars
+    training-flow ${@}
+}
+
+function training-flow-datazone() {
+    set-datazone-env-vars
+    training-flow ${@}
+}
+
+function training-flow() {
+    generate-metaflow-config
+    uv run "./metaflow/train_model_flow.py" --environment=uv ${@}
+}
+
+function drop-metaflow-tables() {
+    generate-metaflow-config
+    echo "Dropping all tables managed by the Metaflow training flow..."
+    uv run "./metaflow/drop_tables.py"
+}
+
+function generate-metaflow-config() {
+    cat > "${THIS_DIR}/metaflow/config.yaml" << EOF
+# this file is auto-generaged by 'bash run.sh generate-metaflow-config'
+as_of_datetime: "2025-06-01 00:00:00.000"
+lookback_days: 30
+predict_horizon_hours: 24
+glue_database: "${GLUE_DATABASE}"
+datalake_s3_bucket: "${S3_DATA_LAKE_BUCKET_NAME}"
+region: "${AWS_REGION}"
+EOF
+    echo "Generated metaflow/config.yaml with:"
+    echo "  Glue Database: ${GLUE_DATABASE}"
+    echo "  S3 Bucket: ${S3_DATA_LAKE_BUCKET_NAME}"
+    echo "  AWS Region: ${AWS_REGION}"
+}
+
+# Usage: ./run send-lineage [example-lineage.json]
+function send-lineage {
+    curl -X POST http://localhost:${DATAHUB_MAPPED_GMS_PORT}/openapi/openlineage/api/v1/lineage \
+        -H "Content-Type: application/json" \
+        -d @"${THIS_DIR}/${@:-example-lineage.json}"
+}
+
+
+######### Airflow #########
 
 function airflow() {
     # Managing Airflow Variables using env vars: https://airflow.apache.org/docs/apache-airflow/stable/howto/variable.html
@@ -57,16 +167,6 @@ function airflow() {
     export AWS_REGION=us-east-1
     export AWS_DEFAULT_REGION=us-east-1
     uv run airflow ${@}
-}
-
-function airflow-docker() {
-    pushd "${THIS_DIR}/airflow"
-    docker compose up --build
-    popd
-}
-
-function datahub-docker() {
-    uv run datahub docker quickstart
 }
 
 function init-airflow() {
@@ -92,6 +192,8 @@ function start-airflow() {
     airflow standalone
 }
 
+######### Infra #########
+
 function create-infra() {
     export STACK_ACTION=up
     uv run "${THIS_DIR}/infra.py"
@@ -102,39 +204,6 @@ function destroy-infra() {
     uv run "${THIS_DIR}/infra.py"
 }
 
-function generate-metaflow-config() {
-    cat > "${THIS_DIR}/metaflow/config.yaml" << EOF
-# this file is auto-generaged by 'bash run.sh generate-metaflow-config'
-as_of_datetime: "2025-06-01 00:00:00.000"
-lookback_days: 30
-predict_horizon_hours: 24
-glue_database: "${GLUE_DATABASE}"
-datalake_s3_bucket: "${S3_DATA_LAKE_BUCKET_NAME}"
-region: "${AWS_REGION}"
-EOF
-    echo "Generated metaflow/config.yaml with:"
-    echo "  Glue Database: ${GLUE_DATABASE}"
-    echo "  S3 Bucket: ${S3_DATA_LAKE_BUCKET_NAME}"
-    echo "  AWS Region: ${AWS_REGION}"
-}
-
-function training-flow() {
-    generate-metaflow-config
-    uv run "./metaflow/train_model_flow.py" --environment=uv ${@}
-}
-
-function drop-metaflow-tables() {
-    generate-metaflow-config
-    echo "Dropping all tables managed by the Metaflow training flow..."
-    uv run "./metaflow/drop_tables.py"
-}
-
-# Usage: ./run send-lineage [example-lineage.json]
-function send-lineage {
-    curl -X POST http://localhost:${DATAHUB_MAPPED_GMS_PORT}/openapi/openlineage/api/v1/lineage \
-        -H "Content-Type: application/json" \
-        -d @"${THIS_DIR}/${@:-example-lineage.json}"
-}
 
 # remove all files generated by tests, builds, or operating this codebase
 function clean {

@@ -3,6 +3,8 @@ temp/
 **/.dag*.py
 *.metaflow
 .pulumi
+**/cdk.out/
+**/cdk.context.json
 
 # Python-generated files
 __pycache__/

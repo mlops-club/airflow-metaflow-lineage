@@ -22,6 +22,7 @@ from openlineage.client import OpenLineageClient
 from openlineage.client.facet import ParentRunFacet
 from openlineage.client.facet_v2 import processing_engine_run, source_code_job, source_code_location_job
 from openlineage.client.run import Dataset, Job, Run, RunEvent, RunState
+from openlineage.client.transport.transport import Transport
 from openlineage.client.uuid import generate_new_uuid
 
 from metaflow import current
@@ -140,7 +141,7 @@ def openlineage(func: Callable) -> Callable:
 
 def _create_openlineage_client() -> OpenLineageClient:
     """Initialize OpenLineage client from environment variables."""
-    return OpenLineageClient().from_environment()
+    return OpenLineageClient.from_environment()
 
 
 def _create_processing_engine_facet(name: str | None, version: str) -> processing_engine_run.ProcessingEngineRunFacet:
