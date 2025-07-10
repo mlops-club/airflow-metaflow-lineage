@@ -1,0 +1,143 @@
+- dataset_name: yellow_rides_hourly_forecast
+  dataset_owner: { "data_team@company.com": "U123456789" }
+  dataset_type: pandas
+  checks:
+    "*":
+      missing_percent:
+        - [eq, 0]
+    year:
+      min:
+        - [gte, 2020]
+      max:
+        - [lte, 2030]
+    month:
+      min:
+        - [gte, 1]
+      max:
+        - [lte, 12]
+    day:
+      min:
+        - [gte, 1]
+      max:
+        - [lte, 31]
+    hour:
+      min:
+        - [gte, 0]
+      max:
+        - [lte, 23]
+    forecasted_total_rides:
+      row_count:
+        - [gte, 1000]
+      min:
+        - [gte, 0]
+      max:
+        - [lte, 1000]
+      mean:
+        - [gte, 10]
+        - [lte, 30]
+- dataset_name: yellow_rides_hourly_actuals
+  dataset_owner: { "analytics_team@company.com": "U987654321" }
+  dataset_type: pandas
+  checks:
+    "*":
+      missing_percent:
+        - [eq, 0]
+    total_rides:
+      row_count:
+        - [gte, 5000]
+      min:
+        - [gte, 0]
+      max:
+        - [lte, 1000]
+    pulocationid:
+      missing_percent:
+        - [eq, 0]
+      min:
+        - [gte, 1]
+      max:
+        - [lte, 265]
+    year:
+      min:
+        - [gte, 2020]
+      max:
+        - [lte, 2030]
+    month:
+      min:
+        - [gte, 1]
+      max:
+        - [lte, 12]
+    day:
+      min:
+        - [gte, 1]
+      max:
+        - [lte, 31]
+    hour:
+      min:
+        - [gte, 0]
+      max:
+        - [lte, 23]
+- dataset_name: raw_weather
+  dataset_owner: { "weather_team@company.com": "U456789123" }
+  dataset_type: pandas
+  checks:
+    "*":
+      missing_percent:
+        - [eq, 0]
+    region_code:
+      distinct_count:
+        - [eq, 0]
+    month:
+      min:
+        - [gte, 1]
+      max:
+        - [lte, 12]
+    year:
+      min:
+        - [gte, 2020]
+      max:
+        - [lte, 2030]
+- dataset_name: raw_yellow
+  dataset_owner: { "taxi_team@company.com": "U789123456" }
+  dataset_type: pandas
+  checks:
+    "*":
+      missing_percent:
+        - [lte, 5]
+    passenger_count:
+      min:
+        - [gte, 0]
+      max:
+        - [lte, 8]
+    trip_distance:
+      min:
+        - [gte, 0]
+      max:
+        - [lte, 1000]
+    fare_amount:
+      min:
+        - [gte, 0]
+      max:
+        - [lte, 20000]
+    total_amount:
+      min:
+        - [gte, 0]
+      max:
+        - [lte, 5000]
+    pulocationid:
+      min:
+        - [gte, 1]
+      max:
+        - [lte, 265]
+    dolocationid:
+      min:
+        - [gte, 1]
+      max:
+        - [lte, 265]
+    tip_amount:
+      min:
+        - [gte, 0]
+    payment_type:
+      min:
+        - [gte, 1]
+      max:
+        - [lte, 4]
