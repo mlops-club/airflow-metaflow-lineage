@@ -102,12 +102,23 @@ Now trigger each of the Airflow DAGs via the UI
 ./run training-flow-datazone run  # To emit lineage events to Amazon DataZone
 ```
 
-### Lineage Graphs
+### Lineage Graphs 🎉
 
 <figure>
    <img src="./images/datahub-lineage.png" alt="DataHub Lineage Graph" width="800">
-   <figcaption style="text-align: center;">DataHub Lineage Graph</figcaption>
+   <figcaption style="text-align: center; font-style: italic; margin-top: 10px;">DataHub Lineage Graph</figcaption>
 </figure>
+
+
+<div align="center">
+  <video width="800" controls>
+    <source src="./images/datazone.mov.mp4" type="video/mp4">
+    Your browser does not support the video tag.
+  </video>
+  <p style="text-align: center; font-style: italic; margin-top: 10px;">DataZone Lineage</p>
+</div>
+
+
 
 ## OpenLineage Diagram
 

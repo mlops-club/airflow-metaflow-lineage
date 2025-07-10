@@ -38,11 +38,12 @@ export OPENLINEAGE__TRANSPORT__VERIFY="false"
 export OPENLINEAGE__TRANSPORT__TIMEOUT="30"
 export OPENLINEAGE_CLIENT_LOGGING="DEBUG"
 
-THIS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-
-
 # Set the Metaflow to use local environment
 export METAFLOW_HOME="$THIS_DIR/.metaflow"
+
+
+THIS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+
 
 # these env vars are used by the openlineage client in the metaflow flows
 function set-datazone-env-vars() {
