@@ -34,6 +34,7 @@ datahub = [
     "acryl-datahub>=1.1.0.4",
 ]
 dev = [
+    "ipykernel>=6.29.5",
     "rich>=13.9.4",
 ]
 cdk = [
