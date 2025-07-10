@@ -106,7 +106,7 @@ function datahub-docker-stop() {
 
 function datahub-docker-nuke() {
     # Stops and removes all DataHub docker containers
-    uv run datahub nuke
+    uv run datahub docker nuke
 }
 
 

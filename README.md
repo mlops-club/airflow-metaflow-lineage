@@ -7,7 +7,7 @@ The assets will include files, iceberg lakehouse tables on AWS Glue/S3, and ML m
 
 In this case, we will use
 
-**Apache Airflow 3.0** which has already built integrations for **OpenLineage** and **DataHub**.
+**Apache Airflow 2.0** which has already built integrations for **OpenLineage** and **DataHub**.
 
 **Metaflow** which we will instrument with OpenLineage ourselves to send to **DataHub** and another OpenLineage backend.
 
@@ -41,46 +41,73 @@ Prerequisites
 ### Step 1 - One-time (ish) Setup
 
 ```bash
+# Install all dependencies
 uv sync --all-groups
 
 # uses the sandbox profile to create an S3 bucket and Glue Database
-bash run create-infra  # destroy-infra is also a command 
-
-# create an airflow sqlite db and seed it with some variables needed for the DAGs
-bash run init-airflow
+./run create-infra  # destroy-infra is also a command 
 ```
 
-### Step 2 - Run the Airflow DAGs
+### Step 2 - Start DataHub
 
 ```bash
-# start the airflow UI
-bash run airflow standalone
+# Start DataHub in Docker
+./run datahub-docker
+# To see the DataHub UI, go to http://localhost:9002
+# username: datahub
+# password: datahub
+
+# To stop DataHub
+./run datahub-docker-stop
+
+# To wipe out DataHub Containers and start fresh
+./run datahub-docker-nuke
 ```
 
-You can see the UI at [`localhost:8080`](http://localhost:8080) 
-- username: `admin`
-- passwored: `admin`
+### Step 3 - Setup Amazon DataZone
+
+We will have to manually set up Datazone in the AWS Console. Please follow [this](./setup-datazone.md) guide.
+
+
+### Step 4 - Run the Airflow DAGs
+
+```bash
+# Run Airflow in Docker
+./run airflow-docker-datahub  # To emit lineage events to DataHub
+./run airflow-docker-datazone  # To emit lineage events to Amazon DataZone
+```
+
+You can see the UI at [`localhost:9090`](http://localhost:9090) 
+- username: `airflow`
+- password: `airflow`
 
 Now trigger each of the Airflow DAGs via the UI
 
-1. Temperature/Precipitation: http://localhost:8080/dags/ingest_weather_data
-2. Yellow Taxi Trips: http://localhost:8080/dags/ingest_yellow_taxi_data
+1. Temperature/Precipitation: http://localhost:9090/dags/ingest_weather_data
+2. Yellow Taxi Trips: http://localhost:9090/dags/ingest_yellow_taxi_data
 
-![](./images/trigger-airflow.png)
+![Airflow Trigger](./images/trigger-airflow.png)
 
-Go preview your data in athena [here](https://us-east-1.console.aws.amazon.com/athena/home?region=us-east-1#/query-editor/)
+- Go preview your data in athena [here](https://us-east-1.console.aws.amazon.com/athena/home?region=us-east-1#/query-editor/)
+- These tables should all be visible [in Glue](https://us-east-1.console.aws.amazon.com/glue/home?region=us-east-1#/v2/data-catalog/databases)!
 
-### Step 3 - Run the Metaflow flow
+<!-- ![athena-glue-tables](./images/athena-glue-tables.png) -->
+<img src="./images/athena-glue-tables.png" alt="Athena Glue Tables" width="600">
+
+
+### Step 5 - Run the Metaflow flow
 
 ```bash
-bash run training-flow run
+./run training-flow-datahub run  # To emit lineage events to DataHub
+./run training-flow-datazone run  # To emit lineage events to Amazon DataZone
 ```
 
-### Done! 🎉
+### Lineage Graphs
 
-These tables should all be visible [in Athena/Glue](https://us-east-1.console.aws.amazon.com/athena/home?region=us-east-1#/query-editor/)!
-
-![alt text](./images/athena-glue-tables.png)
+<figure>
+   <img src="./images/datahub-lineage.png" alt="DataHub Lineage Graph" width="800">
+   <figcaption style="text-align: center;">DataHub Lineage Graph</figcaption>
+</figure>
 
 ## OpenLineage Diagram
 
