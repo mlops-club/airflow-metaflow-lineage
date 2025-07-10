@@ -104,17 +104,16 @@ Now trigger each of the Airflow DAGs via the UI
 
 ### Lineage Graphs 🎉
 
+<div align="center">
 <figure>
    <img src="./images/datahub-lineage.png" alt="DataHub Lineage Graph" width="800">
    <figcaption style="text-align: center; font-style: italic; margin-top: 10px;">DataHub Lineage Graph</figcaption>
 </figure>
+</div>
 
 
 <div align="center">
-  <video width="800" controls>
-    <source src="https://github.com/mlops-club/airflow-metaflow-lineage/raw/refs/heads/main/images/datazone.mov.mp4" type="video/mp4">
-    Your browser does not support the video tag.
-  </video>
+  <video src="https://github.com/mlops-club/airflow-metaflow-lineage/raw/refs/heads/main/images/datazone.mov.mp4" width="800" controls="controls"></video>
   <p style="text-align: center; font-style: italic; margin-top: 10px;">DataZone Lineage</p>
 </div>
 
