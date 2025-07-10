@@ -118,6 +118,13 @@ Now trigger each of the Airflow DAGs via the UI
 </div>
 
 
+## Data Quality Checks / Assertions
+
+![](./images/assertions.png)
+
+![](./images/assertion-in-lineage-view.png)
+
+![](./images/upstream-assertion-failure.png)
 
 ## OpenLineage Diagram
 
