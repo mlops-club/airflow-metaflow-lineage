@@ -112,7 +112,7 @@ Now trigger each of the Airflow DAGs via the UI
 
 <div align="center">
   <video width="800" controls>
-    <source src="./images/datazone.mov.mp4" type="video/mp4">
+    <source src="https://github.com/mlops-club/airflow-metaflow-lineage/raw/refs/heads/main/images/datazone.mov.mp4" type="video/mp4">
     Your browser does not support the video tag.
   </video>
   <p style="text-align: center; font-style: italic; margin-top: 10px;">DataZone Lineage</p>
