@@ -1,3 +1,5 @@
+"""We aren't using this file. It's for reference on how to programmatically log assertions to DataHub."""
+
 import json
 import logging
 import sys
