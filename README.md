@@ -19,6 +19,48 @@ For each of ~50 pickup locations in NYC, the pipeline attempts to predict the nu
 
 E.g. predict that pickup location `1` will have `3` rides at `2025-06-01 8:00 AM`, `5` rides at `2025-06-01 9:00 AM`, etc.
 
+Example:
+
+```sql
+SELECT 
+  format('%04d-%02d-%02d %02d:00:00', "year", "month", "day", "hour") AS datetime_hour,
+  pulocationid,
+  forecasted_total_rides
+FROM yellow_rides_hourly_forecast
+WHERE pulocationid = 10
+ORDER BY pulocationid, "year", "month", "day", "hour"
+LIMIT 50;
+```
+
+| datetime_hour        | pulocationid | forecasted_total_rides |
+|---------------------|--------------|------------------------|
+| 2025-06-01 00:00:00 | 10           | 5                      |
+| 2025-06-01 01:00:00 | 10           | 4                      |
+| 2025-06-01 02:00:00 | 10           | 0                      |
+| 2025-06-01 03:00:00 | 10           | 2                      |
+| 2025-06-01 04:00:00 | 10           | 1                      |
+| 2025-06-01 05:00:00 | 10           | 0                      |
+| 2025-06-01 06:00:00 | 10           | 0                      |
+| 2025-06-01 07:00:00 | 10           | 3                      |
+| 2025-06-01 08:00:00 | 10           | 2                      |
+| 2025-06-01 09:00:00 | 10           | 7                      |
+| 2025-06-01 10:00:00 | 10           | 1                      |
+| 2025-06-01 11:00:00 | 10           | 3                      |
+| 2025-06-01 12:00:00 | 10           | 6                      |
+| 2025-06-01 13:00:00 | 10           | 4                      |
+| 2025-06-01 14:00:00 | 10           | 3                      |
+| 2025-06-01 15:00:00 | 10           | 3                      |
+| 2025-06-01 16:00:00 | 10           | 10                     |
+| 2025-06-01 17:00:00 | 10           | 4                      |
+| 2025-06-01 18:00:00 | 10           | 6                      |
+| 2025-06-01 19:00:00 | 10           | 3                      |
+| 2025-06-01 20:00:00 | 10           | 4                      |
+| 2025-06-01 21:00:00 | 10           | 4                      |
+| 2025-06-01 22:00:00 | 10           | 10                     |
+| 2025-06-01 23:00:00 | 10           | 7                      |
+
+![](./images/manhattan-taxi-zone-map.png)
+
 ### The pipeline's lineage
 
 To ingest the data and produce these inferences, there are a number of intermediary files, tables, and a ML model.
