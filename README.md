@@ -11,6 +11,12 @@ In this case, we will use
 
 **Metaflow** which we will instrument with OpenLineage ourselves to send to **DataHub** and another OpenLineage backend.
 
+## Interview with Shirshanka from DataHub about OpenLineage
+
+Eric talks about the motivation for investigating data lineage on his ML Platform team. He shows this repo at the end.
+
+[![](./docs/shirshanka-eric-talk.png)](https://www.youtube.com/watch?v=OF7AoOC7W6c)
+
 ## The pipeline
 
 We are doing forecasting on the NYC Yellow Taxi trips dataset.
